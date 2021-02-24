@@ -8,6 +8,7 @@ using System.Collections;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Reflection;
 
 namespace k001_shukka
 {
@@ -751,7 +752,19 @@ namespace k001_shukka
                 , sid);
             return s;
         }
-
+        /// <summary>
+        /// コントロールのDoubleBufferedプロパティをTrueにする
+        /// </summary>
+        /// <param name="control">対象のコントロール</param>
+        public static void EnableDoubleBuffering(Control control)
+        {
+            control.GetType().InvokeMember(
+               "DoubleBuffered",
+               BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.SetProperty,
+               null,
+               control,
+               new object[] { true });
+        }
 
         /// <summary>
         /// DataGridViewの書式設定
@@ -1330,6 +1343,56 @@ namespace k001_shukka
                     break;
             }
             return s;
+        }
+
+        public static int dgvWidth(DataGridView dgv)
+        {
+            int i = 0;
+            for (int icol = 0; icol < dgv.Columns.Count; icol++)
+            {
+                if (dgv.Columns[icol].Visible)
+                {
+                    i += dgv.Columns[icol].Width;
+                }
+            }
+            i += 21;
+            return i;
+        }
+
+        public static bool IsDatetime(string sd)
+        {
+            bool b = false;
+            DateTime dtest;
+            if (DateTime.TryParse(sd, out dtest)) b = true;
+            return b;
+        }
+
+        public static bool IsInt(string si)
+        {
+            bool b = false;
+            int itest;
+            if (int.TryParse(si, out itest)) b = true;
+            return b;
+        }
+
+        public static bool IsDec(string sd)
+        {
+            bool b = false;
+            decimal dtest;
+            if (decimal.TryParse(sd, out dtest)) b = true;
+            return b;
+        }
+
+        /// <summary>
+        /// 指定したディレクトリが無ければ作る
+        /// </summary>
+        /// <param name="sDir"></param>
+        public static void CrtDir(string sDir)
+        {
+            if (!System.IO.Directory.Exists(sDir))
+            {
+                System.IO.Directory.CreateDirectory(sDir);
+            }
         }
     }
 }

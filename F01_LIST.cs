@@ -1,8 +1,14 @@
 ﻿using ClosedXML.Excel;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
 using mydb;
+using System.Linq;
 using System;
-using System.Runtime.Remoting.Metadata.W3cXsd2001;
+using System.IO;
 using System.Windows.Forms;
+using Oracle.ManagedDataAccess.Client;
+//iTextSharp.text.FontクラスがSystem.Drawing.Fontクラスと
+//混在するためiFontという別名を設定
 
 namespace k001_shukka
 {
@@ -19,7 +25,6 @@ namespace k001_shukka
         private string EDate = string.Empty;
         string sFilter = string.Empty;
         private bool bdgvCellClk = false; // dgvでクリックする場合には必須
-        private int pDisp = 0;
         #endregion 
 
         public F01_LIST(params string[] argVals)
@@ -36,7 +41,7 @@ namespace k001_shukka
             // 画面サイズ変更の禁止
             this.MaximizeBox = false;
 
-            lblCaption.Text = sTitle;
+            lblCaption.Text = fn.frmTxt(sTitle);
             string s = string.Empty; ;
             if (usr.iDB == 1) s += " TestDB: ";
             s += DateTime.Now.ToString("yy/MM/dd HH:mm");
@@ -77,16 +82,20 @@ namespace k001_shukka
             lblRCaption.Top = lblCaption.Top;
             string s = string.Empty;
 
-            SDate = DateTime.Today.AddDays(-1).ToShortDateString();
-            EDate = DateTime.Today.ToShortDateString();
+            SDate = DateTime.Today.AddMonths(-3).ToShortDateString();
+            EDate = DateTime.Today.AddMonths(3).ToShortDateString();
 
             string sTerm = string.Empty;
             double Interval = (DateTime.Parse(EDate) - DateTime.Parse(SDate)).TotalDays;
             if (Interval == 1) sTerm = SDate;
-            else sTerm = string.Format("{0} - {1}", SDate, EDate);
+            else sTerm = string.Format(" 期間:{0} - {1}", SDate, EDate);
             lblCaption.Text += " " + sTerm;
+            fn.EnableDoubleBuffering(dgv0);
+
+            CrtShipInf();
 
             GetData(dgv0, bs0, GetOrder());
+            arrageTextBW(dgv0);
         }
 
         private void SetTooltip()
@@ -110,12 +119,14 @@ namespace k001_shukka
             ToolTip1.SetToolTip(btnClose, "戾る");
             ToolTip1.SetToolTip(button1, "エクセル出力");
             ToolTip1.SetToolTip(button2, "日付変更");
-            ToolTip1.SetToolTip(button3, "入庫登録");
-            ToolTip1.SetToolTip(button4, "表示切替");
-            //ToolTip1.SetToolTip(button5, "ロット一覧印刷");
-            //ToolTip1.SetToolTip(button6, "ロット単票印刷");
-            //ToolTip1.SetToolTip(button7, "表示切替");
-
+            ToolTip1.SetToolTip(button3, "新規");
+            ToolTip1.SetToolTip(button4, "納品書出力");
+            ToolTip1.SetToolTip(button5, "ロット明細印刷");
+            ToolTip1.SetToolTip(button6, "表示更新");
+            ToolTip1.SetToolTip(button7, "アンマッチ確認");
+            ToolTip1.SetToolTip(button8, "売上番号登録");
+            ToolTip1.SetToolTip(button9, "受領書確認");
+            ToolTip1.SetToolTip(button10, "エラー表示");
         }
         #region CLOSE処理
         // 3) btnClose
@@ -151,88 +162,185 @@ namespace k001_shukka
         }
         #endregion
 
+        private void CrtShipInf()
+        {
+            mydb.kyDb con = new mydb.kyDb();
+            int iMax = con.iGetCount("SELECT MAX(SEQ) FROM t_shipment_inf;",DEF_CON.Constr());
+            iMax++;
+            con.GetData(sChkJuchuExist(), DEF_CON.Constr());
+            if (con.ds.Tables[0].Rows.Count == 0) return;
+            string sIns = "INSERT INTO t_shipment_inf (";
+            sIns += "SEQ,LOC_SEQ,JC_SEQ,JDNNO,LINNO,UPD_DATE,REG_DATE,LGC_DEL) VALUES ";
+            string sSql = string.Empty;
+            string sVal = string.Empty;
+            string sErr = string.Empty;
+            
+            for (int i = 0; i < con.ds.Tables[0].Rows.Count; i++)
+            {
+                /*
+                 jc.SEQ,jc.JDNNO,jc.LINNO,jc.SOUCD
+                 */
+                try
+                {
+                    string lcn = con.ds.Tables[0].Rows[i][3].ToString();
+                    lcn = lcn.Replace("0", "");
+                    sErr = lcn; // エラーが起きた時の為
+                    lcn = (int.Parse(lcn) - 1).ToString();
+                    sVal += ",(" + iMax.ToString();
+                    sVal += "," + lcn;
+                    sVal += "," + con.ds.Tables[0].Rows[i][0].ToString();
+                    sVal += ",'" + con.ds.Tables[0].Rows[i][1].ToString() + "'";
+                    sVal += ",'" + con.ds.Tables[0].Rows[i][2].ToString() + "'";
+                    sVal += ",NOW(),NOW(),'0')";
+                    iMax++;
+                }
+                catch
+                {
+                    string[] sSet = { "登録出来ませんでした。", "false" };
+                    string[] sRcv = promag_frm.F05_YN.ShowMiniForm(sSet);
+                    continue;
+                }
+            }
+            if(sVal.Length > 0 && sVal.Substring(sVal.Length-1) == ")")
+            {
+                sVal = sVal.Substring(1) + ";";
+                sSql = sIns + sVal;
+                string s = con.ExecSql(false, DEF_CON.Constr(), sSql);
+            }
+        }
+
         private string GetOrder()
         {
             string sMN = string.Empty;
             string sTerm = string.Empty;
             sTerm = string.Format("BETWEEN '{0}' AND '{1}'", SDate, EDate);
+            sTerm = string.Format("BETWEEN '{0}' AND '{1}'", SDate.Substring(2), EDate.Substring(2));
             string s = string.Empty;
-            if (pDisp == 0)
-            {
-                s = string.Format(
-                    "SELECT"
-                     + " p.PRODUCT_SEQ SEQ"  //0
-                     + " ,p.GOODS_NAME 品名"  //1
-                     + " , CONCAT( "  //2
-                     + "   LEFT (p.MACHINE_NAME, 1)"
-                     + "   , '-'"
-                     + "   , DATE_FORMAT(p.PRODUCT_DATE, '%m')"
-                     + "   , '-'"
-                     + "   , p.CONTROL_NUM"
-                     + " ) 外袋No"
-                     + " , CONCAT('-', SUBSTRING_INDEX(p.LOT_NO, '-', - 1)) Lot枝番" // 3
-                     + ", p.WEIGHT" // 4
-                     + ", p.LOT_NO LotNO" // 5
-                     + " FROM"
-                     + " kyoei.t_m_product p "
-                     + " LEFT JOIN kyoei.t_b_warehouse bw"
-                     + " ON bw.LOT_SEQ = p.PRODUCT_SEQ"
-                     + " WHERE"
-                     + "  p.PRODUCT_DATE {1}"
-                     + "  AND bw.LOT_SEQ IS NULL"
-                     + "  {0}"
-                     + " ORDER BY p.MACHINE_NAME, p.PRODUCT_DATE, p.LOT_NO"
-                     + ";"
-                    , sMN, sTerm);
-            }
-            if (pDisp == 1)
-            {
-                s = string.Format(
-                    "SELECT"
-                + " DATE_FORMAT(p.PRODUCT_DATE,'%Y/%m/%d') 生産日"  //0
-                + " ,p.MACHINE_NAME ライン"  //1
-                + " ,p.LOT_NO LotNo"  //2
-                + " ,bw.LOT_NO 管理No"  //3
-                + " ,'' 備考"  //4
-                + " ,p.WEIGHT 在庫数"  //5
-                + " ,DATE_FORMAT(bw.STATUS0,'%Y/%m/%d') 倉入日"  //6
-                + " FROM kyoei.t_b_warehouse bw"
-                + " LEFT JOIN kyoei.t_m_product p"
-                + "  ON p.PRODUCT_SEQ = bw.LOT_SEQ"
-                + " WHERE bw.STATUS0 {0}"
-                + " AND bw.LOT_SEQ IS NOT NULL"
-                + " {1}"
-                + " ORDER BY p.PRODUCT_DATE,p.MACHINE_NAME,p.LOT_NO;"
-                    , sTerm, sMN);
-            }
-            if (pDisp == 2)
-            {
-                s = string.Format(
-                    "SELECT"
-                 + " '' 伝票"  //0
-                 + " ,'MR物流センタ-'"  //1
-                 + " ,DATE_FORMAT(bw.STATUS0,'%m/%d') 入庫日"  //2
-                 + " ,'' 得コード"  //3
-                 + " ,'MRファクトリー' 得意先名"  //4
-                 + " ,'PET' 種類"  //5
-                 + " ,'' 品名CD"  //6
-                 + " ,CONCAT(p.GOODS_NAME"
-                 + " ,' ','MRF ',p.MACHINE_NAME) 品名"  //7
-                 + " ,'' 備考"  //8
-                 + " ,COUNT(*) 数量"  //9
-                 + " ,'F/B' 単位1"  //10
-                 + " ,SUM(p.WEIGHT) 重量"  //11
-                 + " ,'kg' 単位2"  //12
-                 + " FROM kyoei.t_b_warehouse bw"
-                 + " LEFT JOIN kyoei.t_m_product p"
-                 + "  ON p.PRODUCT_SEQ = bw.LOT_SEQ"
-                 + " WHERE bw.STATUS0 {0}"
-                 + " AND bw.LOT_SEQ IS NOT NULL"
-                 + " {1}"
-                 + " GROUP BY bw.STATUS0,p.PRODUCT_DATE,p.MACHINE_NAME,p.GOODS_NAME"
-                 + " ORDER BY bw.STATUS0,p.PRODUCT_DATE,p.MACHINE_NAME,p.GOODS_NAME;"
-                    , sTerm, sMN);
-            }
+            string s1 = @"[0-9]{8}";
+            s = string.Format(
+                   "SELECT"
+                 + "  si.SEQ 出荷No"                                                // 0
+                 + " , si.JDNNO 伝票番号"                                           // 1
+                 + " , si.LINNO 行番号"                                             // 2
+                 + " , CASE"
+                 + "   WHEN jc.SYUYTIDT IS NOT NULL"
+                 + "   THEN CONCAT(SUBSTRING(jc.SYUYTIDT,3,2),'/',SUBSTRING(jc.SYUYTIDT,5,2)"
+                 + "    ,'/',SUBSTRING(jc.SYUYTIDT,7,2))"
+                 + "   ELSE DATE_FORMAT(si.SHIP_DATE, '%y/%m/%d') END 出荷日"       // 3
+                 + " , CASE WHEN LOCATE('①',jc.LINCM) + LOCATE('②',jc.LINCM)"
+                 + "    + LOCATE('③',jc.LINCM) + LOCATE('④',jc.LINCM)"
+                 + "    + LOCATE('⑤',jc.LINCM) + LOCATE('⑥',jc.LINCM)"
+                 + "    + LOCATE('⑦',jc.LINCM) + LOCATE('⑧',jc.LINCM)"
+                 + "    > 0 THEN CONCAT(LEFT(jc.LINCM,1),IFNULL(jc.NHSNM, si.DESTINATION))"
+                 + "  ELSE IFNULL(jc.NHSNM, si.DESTINATION) END 出荷先"            // 4
+                 + " , IFNULL(jc.HINNMA, si.ITEM) 品名"                            // 5
+                 + " , IFNULL(CAST(jc.UODSU AS SIGNED),si.SHIPMENT_QUANTITY) 数量" // 6
+                 + " , CASE "
+                 + "   WHEN si.DN_CHK_DATE IS NOT NULL" 
+                 + "     THEN '8完了'"
+                 + "   WHEN jcr.STATUS IS NOT NULL AND jcr.cm regexp '{1}' AND si.DN_CHK_DATE IS NULL" // 返却STATUS有 STATUS=1"
+                 + "     THEN '7受領確認待'"
+                 + "   WHEN si.JC_SEQ IS NOT NULL AND si.JC_SEQ != jc.SEQ "           // GA_SEQ未設定
+                 + "     THEN '0【要確認】受注データ更新' "
+                 + "   WHEN jc.LGC_DEL = '1'"                                         // GA_SEQ未設定
+                 + "     THEN '0【要確認】受注データ削除' "
+                 + "   WHEN si.GA_SEQ IS NULL "                                       // GA_SEQ未設定
+                 + "     THEN '1品目選定待' "
+                 + "   WHEN si.GA_SEQ IS NOT NULL AND (IFNULL(CAST(jc.UODSU AS SIGNED),si.SHIPMENT_QUANTITY) != IFNULL(tmp.wt,0) OR IFNULL(tmp.wt,0) = 0)" // GA_SEQ設定済 選定LOT重量合計<>ship_inf重量
+                 + "     THEN '2Lot選定待' "
+                 + "   WHEN IFNULL(CAST(jc.UODSU AS SIGNED),si.SHIPMENT_QUANTITY) = IFNULL(tmp.wt,0) AND tmp.CHK_DATE IS NULL" // 選定LOT重量合計=ship_inf重量 出荷確認無
+                 + "     THEN '3出荷確認待' "
+                 + "   WHEN si.JDNNO IS NOT NULL AND si.SC_OUT IS NULL"          //  受注番号有り SC_OUT無し"
+                 + "     THEN '4CSV出力待'"
+                 + "   WHEN si.SC_OUT IS NOT NULL AND jcr.STATUS IS NULL"        // SC_OUTあり 返却STATUS無し"
+                 + "     THEN '5SC連携待'"
+                 
+                 + "   WHEN jcr.STATUS IS NOT NULL AND jcr.STATUS = '1' AND si.DN_CHK_DATE IS NULL" // 返却STATUS有 STATUS=1"
+                 + "     THEN '6SC連携エラー'"
+                 //+ "   WHEN tmp.CHK_DATE IS NOT NULL AND si.DN_CHK_DATE IS NULL" // 出荷確認有 受領未確認
+                 //+ "     THEN '7受領確認待' "
+                 + "   ELSE '9未設定' "
+                 + "   END STATUS"                                               // 7
+                 + " , CASE WHEN jcr.STATUS = '0' THEN '正'"
+                 + "   WHEN jcr.STATUS = '1' THEN 'E' ELSE '-' END 連"           // 8
+                 //+ " , CASE WHEN (LOCATE(':',jcr.CM) + LOCATE('：',jcr.CM)) > 0"
+                 //+ "   THEN SUBSTRING_INDEX(jcr.CM, '：', -1) "
+                 //+ "   ELSE '' END 出荷番号"                                     // 9
+                 + " , jcr.CM 出荷番号"                                     // 9
+                 + " , CONCAT(w.SEI, w.MEI) 更新者"                              //10
+                 + " , DATE_FORMAT(si.UPD_DATE, '%y/%m/%d') 更新日 "             //11
+                 + " , jc.TOKCD"                                                 //12
+                 + " , jc.HINCD"                                                 //13
+                 + " FROM"
+                 + "  kyoei.t_shipment_inf si "
+                 + "  LEFT JOIN kyoei.m_worker w "
+                 + "    ON si.UPD_ID = w.WKER_ID AND w.LGC_DEL = '0' "
+                 + "  LEFT JOIN kyoei.sc_juchu jc"
+                 + "   ON si.JDNNO = jc.JDNNO AND si.LINNO = jc.LINNO"
+                 + "  LEFT JOIN kyoei.sc_juchu_ret jcr"
+                 + "   ON si.JDNNO = jcr.JDNNO AND si.LINNO = jcr.LINNO"
+            #region oym mrf tcg 3工場の P_SEQ,WEIGHT,SHIP_SEQ CHK_DATE
+                 + "  LEFT JOIN ( "
+                 + "    SELECT"
+                 + "      CAST(SUM(pdc.WEIGHT) as signed) wt"
+                 + "      , pdc.SHIP_SEQ "
+                 + "      , AVG(pdc.CHK_DATE) CHK_DATE"
+                 + "    FROM"
+                 + "    ( "
+                 + "      SELECT"
+                 + "        p.PRODUCT_SEQ"
+                 + "        , p.WEIGHT"
+                 + "        , p.SHIP_SEQ"
+                 + "        , p.SHIP_CHK_DATE CHK_DATE"
+                 + "      FROM"
+                 + "        t_product p"
+                 + "      WHERE"
+                 + "        p.SHIP_SEQ IS NOT NULL"
+                 + "      UNION "
+                 + "      SELECT"
+                 + "        tcg.PRODUCT_SEQ"
+                 + "        , tcg.WEIGHT"
+                 + "        , tcg.SHIP_SEQ "
+                 + "        , tcg.SHIP_CHK_DATE CHK_DATE"
+                 + "      FROM"
+                 + "        t_t_product tcg"
+                 + "      WHERE"
+                 + "        tcg.SHIP_SEQ IS NOT NULL"
+                 + "      UNION "
+                 + "      SELECT"
+                 + "        mp.PRODUCT_SEQ"
+                 + "        , mp.WEIGHT"
+                 + "        , mp.SHIP_SEQ "
+                 + "        , mp.CHK_SHIPPING CHK_DATE"
+                 + "      FROM"
+                 + "        t_m_product mp"
+                 + "      WHERE"
+                 + "        mp.SHIP_SEQ IS NOT NULL"
+                 + "    ) pdc"
+                 + "    GROUP BY pdc.SHIP_SEQ"
+                 + "  ) tmp "
+                 + "    ON tmp.SHIP_SEQ = si.SEQ "
+            #endregion
+                 + " WHERE"
+                 //+ "   si.UPD_DATE > DATE_ADD(CURRENT_DATE (), interval - 6 month) "
+                 //+ "   si.UPD_DATE {0}"
+                 + " CASE"
+                 + "   WHEN jc.SYUYTIDT IS NOT NULL"
+                 + "   THEN CONCAT(SUBSTRING(jc.SYUYTIDT,3,2),'/',SUBSTRING(jc.SYUYTIDT,5,2)"
+                 + "    ,'/',SUBSTRING(jc.SYUYTIDT,7,2))"
+                 + "   ELSE DATE_FORMAT(si.SHIP_DATE, '%y/%m/%d') END {0}"
+                 + "   AND si.LOC_SEQ IN (2,11) "
+                 + "   AND si.LGC_DEL = '0' "
+                 + " GROUP BY"
+                 + "   si.SEQ "
+                 + " ORDER BY"
+                 + " CASE"
+                 + "   WHEN jc.SYUYTIDT IS NOT NULL"
+                 + "   THEN CONCAT(SUBSTRING(jc.SYUYTIDT,3,2),'/',SUBSTRING(jc.SYUYTIDT,5,2)"
+                 + "    ,'/',SUBSTRING(jc.SYUYTIDT,7,2))"
+                 + "   ELSE DATE_FORMAT(si.SHIP_DATE, '%y/%m/%d') END DESC"
+                 + "   ,si.JDNNO DESC,si.LINNO ASC, si.SEQ DESC;"
+                 , sTerm, s1);
             return s;
         }
 
@@ -242,22 +350,27 @@ namespace k001_shukka
             try
             {
                 // dgvの書式設定全般
-                fn.SetDGV(dgv, true, 20, true, 9, 10, 50, true, 40, DEF_CON.DBLUE, DEF_CON.YELLOW);
+                fn.SetDGV(dgv, true, 20, true, 9, 10, 50, true, 40, DEF_CON.BLUE, DEF_CON.YELLOW);
                 dgv.MultiSelect = true;
 
                 //if(bs.DataSource != null) bs.DataSource = null;
-
+                //bs0.Filter = string.Empty;
+                
                 mydb.kyDb con = new mydb.kyDb();
 
                 con.GetData(sSel, DEF_CON.Constr());
-                bs0.Filter = "";
+
+
                 bs.DataSource = con.ds.Tables[0];
-                if (pDisp == 2) dgv.Columns[11].DefaultCellStyle.Format = "#,0";
-                //dgv.Columns[5].DefaultCellStyle.Format = "#,0";
-                //dgv.Columns[4].DefaultCellStyle.Format = "yyyy";
+
+                // 並べ替えを禁止 >> セルが狭くなる
+                //foreach (DataGridViewColumn column in dgv.Columns) // 並替禁止
+                //{
+                //    column.SortMode = DataGridViewColumnSortMode.NotSortable;
+                //}
 
                 //ヘッダーとすべてのセルの内容に合わせて、列の幅を自動調整する
-                dgv.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
+                //dgv.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
                 #region 手動でセル幅を指定する場合
                 #region sel内容
 
@@ -265,21 +378,34 @@ namespace k001_shukka
                 int[] iw;
                 int[] icol;
                 // 列幅を整える
-                //icol = new int[] { 1, 2, 3, 4, 5, 6 };
-                //iw = new int[] { 93, 40, 77, 180, 178, 68 };
-                //clsFunc.setDgvWidth(dgv, icol, iw);
+                icol = new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+                iw = new int[] { 52, 83, 45, 77, 250, 200, 70, 90, 30, 83, 67, 77 };
+                fn.setDgvWidth(dgv, icol, iw);
                 #endregion
-                if (pDisp == 0)
-                {
-                    icol = new int[] { 0, 4 };
-                    fn.setDgvInVisible(dgv, icol);
-                    icol = new int[] { 0, 3 };
-                    iw = new int[] { -1, -1 };
-                    fn.setDgvAlign(dgv, icol, iw);
-                }
 
+                dgv.Columns[6].DefaultCellStyle.Format = "#,0";
+
+                icol = new int[] { 12, 13 };
+                fn.setDgvInVisible(dgv, icol);
+
+                icol = new int[] { 0, 6, 7 };
+                iw = new int[] { -1, -1, 1 };
+                fn.setDgvAlign(dgv, icol, iw);
+                if (fn.dgvWidth(dgv) < 1300)
+                {
+                    this.Width = fn.dgvWidth(dgv) + 40;
+                    dgv.Width = fn.dgvWidth(dgv);
+                }
+                else
+                {
+                    this.Width = 1300;
+                    dgv.Width = this.Width - 40;
+                }
                 dgv.ClearSelection();
-                ChkFilter();
+
+                
+
+                FillDgvCount(dgv, label1);
             }
             catch (Exception ex)
             {
@@ -305,46 +431,232 @@ namespace k001_shukka
                         DateTime.Today.AddDays(-1 * DateTime.Today.Day + 1).ToShortDateString();
                     EDate = SDate;
                 }
-                string[] sSet = { SDate, DateTime.Parse(EDate).AddDays(-1).ToShortDateString(), "" };
+                string[] sSet = { SDate, DateTime.Parse(EDate).AddDays(-1).ToShortDateString(), "更新日" };
                 string[] sRcv = promag_frm.F06_SelDate.ShowMiniForm(this, sSet);
                 if (sRcv[0].Length == 0) return;
                 SDate = sRcv[0];
                 EDate = DateTime.Parse(sRcv[1]).AddDays(1).ToShortDateString();
                 GetData(dgv0, bs0, GetOrder());
+                arrageTextBW(dgv0);
             }
-            if (btn.Name == "button1") // 決定
+            if (btn.Name == "button6") // 表示更新
+            {
+                CrtShipInf();
+                GetData(dgv0, bs0, GetOrder());
+                arrageTextBW(dgv0);
+            }
+            if (btn.Name == "button1") // excel
             {
                 ExportXls(dgv0);
             }
             if (btn.Name == "button3")
             {
-                if (pDisp == 0) RegistRecipt();
+                string[] sendText = { "" };
+                string[] reT = F02_EditOrder.ShowMiniForm(this, sendText);
+                GetData(dgv0, bs0, GetOrder());
+                arrageTextBW(dgv0);
+            }
+            // 納品書
+            if (btn.Name == "button4")
+            {
+                string sNo = dgv0.CurrentRow.Cells[1].Value.ToString();
+                string sLn = dgv0.CurrentRow.Cells[2].Value.ToString();
+                string[] sSnd = { sNo, sLn };
+                string[] sRcv = F05_Dialog.ShowMiniForm(this, sSnd);
+                prtVoucher(sRcv[0]);
+            }
+            // ロット明細
+            if (btn.Name == "button5")
+            {
+                prtLotList();
+            }
+            // 特殊処理
+            if(btn.Name == "button7")
+            {
+                string s = dgv0.CurrentRow.Cells[7].Value.ToString();
+                if(s.Substring(0,1) == "0")
+                {
+                    string sMsg = string.Empty;
+                    if(s.IndexOf("受注データ更新") >= 0)
+                    {
+                        string sNo = dgv0.CurrentRow.Cells[1].Value.ToString();
+                        string sLn = dgv0.CurrentRow.Cells[2].Value.ToString();
+                        string sSql = string.Format(
+                            "UPDATE kyoei.t_shipment_inf SET"
+                             + " JC_SEQ = ("
+                             + " SELECT"
+                             + " sj.SEQ"
+                             + " FROM kyoei.sc_juchu sj"
+                             + " WHERE sj.JDNNO = '{0}' AND sj.LINNO = '{1}'"
+                             + " )"
+                             + " WHERE JDNNO = '{0}' AND LINNO = '{1}';"
+                            , sNo, sLn);
+
+                        sMsg = "受注データが更新されています。\r\n変更した内容を反映させますか？";
+                        string[] sSnd = { sMsg, "" };
+                        string[] sRcv = promag_frm.F05_YN.ShowMiniForm(sSnd);
+                        if (sRcv[0].Length == 0) return;
+                        kyDb con = new kyDb();
+                        con.ExecSql(false, DEF_CON.Constr(), sSql);
+                        GetData(dgv0, bs0, GetOrder());
+                        arrageTextBW(dgv0);
+                    }
+                    if(s.IndexOf("受注データ削除") >= 0)
+                    {
+                        string sSeq = dgv0.CurrentRow.Cells[0].Value.ToString();
+                        string sSql = string.Format(
+                            "UPDATE kyoei.t_shipment_inf SET"
+                             + " LGC_DEL = '1'"
+                             + " WHERE SEQ = {0};"
+                            , sSeq);
+
+                        sMsg = "受注データがカクテル側で取消されています。。\r\n"
+                            + "選択した出荷情報を削除しますか？";
+                        string[] sSnd = { sMsg, "" };
+                        string[] sRcv = promag_frm.F05_YN.ShowMiniForm(sSnd);
+                        if (sRcv[0].Length == 0) return;
+                        kyDb con = new kyDb();
+                        con.ExecSql(false, DEF_CON.Constr(), sSql);
+                        GetData(dgv0, bs0, GetOrder());
+                        arrageTextBW(dgv0);
+                    }
+                }
+            }
+            // //SEQ,受注番号,STATUS,LINO
+            // 売上番号登録
+            if (btn.Name == "button8")
+            {
+                if(dgv0.SelectedRows.Count == 1)
+                {
+                    string s0 = dgv0.CurrentRow.Cells[0].Value.ToString();
+                    string s1 = dgv0.CurrentRow.Cells[1].Value.ToString();
+                    string s2 = dgv0.CurrentRow.Cells[7].Value.ToString();
+                    if (s2.Length > 0) s2 = s2.Substring(0, 1);
+                    string s3 = dgv0.CurrentRow.Cells[2].Value.ToString();
+                    if (s2 == "6" || s2 == "1" || s2 == "2" || s2 == "4")
+                    {
+                        if (s1.Length > 0 && s2.Length > 0)
+                        {
+                            string[] sSnd = { s0, s1, s2, s3 };
+                            string[] sRcv = F08_ChkShipment.ShowMiniForm(this, sSnd);
+                        }
+                    } else
+                    {
+                        string[] snd = { "売上番号登録出来るSTATUSではありません。", "false" };
+                        string[] reT = promag_frm.F05_YN.ShowMiniForm(snd);
+                        return;
+                    }
+                }
                 else
                 {
-                    string[] sSet = { "この表示の時には登録をサポートしません", "false" };
-                    string[] sRcv = promag_frm.F05_YN.ShowMiniForm(sSet);
+                    string[] snd = { "出荷情報は1行だけ選択して下さい","false" };
+                    string[] reT = promag_frm.F05_YN.ShowMiniForm(snd);
+                    return;
+                }   
+            }
+            // 受領書確認
+            if (btn.Name == "button9")
+            {
+                if (dgv0.SelectedRows.Count == 1)
+                {
+                    string s0 = dgv0.CurrentRow.Cells[0].Value.ToString();
+                    string s1 = dgv0.CurrentRow.Cells[1].Value.ToString();
+                    string s2 = dgv0.CurrentRow.Cells[7].Value.ToString();
+                    if (s2.Length > 0) s2 = s2.Substring(0, 1);
+                    string s3 = dgv0.CurrentRow.Cells[2].Value.ToString();
+                    if (s2 == "7")
+                    {
+                        if (s1.Length > 0 && s2.Length > 0)
+                        {
+                            string[] sSnd = { s0, s1, s2, s3 };
+                            string[] sRcv = F08_ChkShipment.ShowMiniForm(this, sSnd);
+                        }
+                    }
+                    else
+                    {
+                        string[] snd = { "受領書確認登録出来るSTATUSではありません。", "false" };
+                        string[] reT = promag_frm.F05_YN.ShowMiniForm(snd);
+                        return;
+                    }
+                }
+                else
+                {
+                    string[] snd = { "出荷情報は1行だけ選択して下さい", "false" };
+                    string[] reT = promag_frm.F05_YN.ShowMiniForm(snd);
                     return;
                 }
             }
-            if (btn.Name == "button4")
+            //　00018156_002_取込結果　
+            if (btn.Name == "button10")
             {
-                pDisp++;
-                if (pDisp == 3) pDisp = 0;
-
-                // 表示に応じたタイトルの付与
-                string sTerm = string.Empty;
-                double Interval = (DateTime.Parse(EDate) - DateTime.Parse(SDate)).TotalDays;
-                if (Interval == 1) sTerm = SDate;
-                else sTerm = string.Format("{0} - {1}", SDate, EDate);
-                switch (pDisp)
+                string s = string.Empty;
+                if (dgv0.SelectedRows.Count != 1) s = "1";
+                if (dgv0.CurrentRow.Cells[8].Value.ToString() != "E") s = "2";
+                if (s.Length > 0)
                 {
-                    case 0: lblCaption.Text = "入庫登録 " + sTerm; break;
-                    case 1: lblCaption.Text = "生産日別入庫済みLot一覧 " + sTerm; break;
-                    case 2: lblCaption.Text = "入庫日・拠点・グレード別重量一覧 " + sTerm; break;
+                    string[] snd = { "エラーの行を1行選択してからクリックして下さい。", "false" };
+                    string[] reT = promag_frm.F05_YN.ShowMiniForm(snd);
+                    return;
                 }
-
-                GetData(dgv0, bs0, GetOrder());
+                string s1 = dgv0.CurrentRow.Cells[1].Value.ToString();
+                string s2 = dgv0.CurrentRow.Cells[2].Value.ToString();
+                string sTarget = string.Format("*{0}_{1}_取込結果*", s1, s2);
+                string dirPath = @"\\10.100.10.20\share\sc_renkei\sc_juchu_bk\";
+                var fileInfo = new DirectoryInfo(dirPath).EnumerateFiles(sTarget)
+                    .OrderByDescending(_file => _file.CreationTime)
+                    .FirstOrDefault();
+                s = fileInfo.ToString();
+                if (s.Substring(s.Length - 4) != ".csv")
+                {
+                    s = dirPath + fileInfo.ToString();
+                    s1 = s + ".csv";
+                    File.Move(s, s1);
+                }
+                else s1 = dirPath + fileInfo.ToString();
+                System.Diagnostics.Process.Start(s1);
             }
+        }
+
+        private void arrageTextBW(DataGridView dgv)
+        {
+            this.Visible = false;
+            if (dgv.Rows.Count > 0)
+            {
+                #region 検索ボックスの位置
+                int iwdt = dgv.Columns[0].Width;
+                textBox0.Left = dgv.Left;
+                textBox0.Width = iwdt;
+
+                textBox1.Left = textBox0.Left + textBox0.Width + 1;
+                iwdt = dgv.Columns[1].Width;
+                textBox1.Width = iwdt;
+
+                textBox2.Left = textBox1.Left + textBox1.Width + 1;
+                iwdt = dgv.Columns[2].Width;
+                textBox2.Width = iwdt;
+
+                textBox3.Left = textBox2.Left + textBox2.Width + 1;
+                iwdt = dgv.Columns[3].Width;
+                textBox3.Width = iwdt;
+
+                textBox4.Left = textBox3.Left + textBox3.Width + 1;
+                iwdt = dgv.Columns[4].Width;
+                textBox4.Width = iwdt;
+
+                textBox5.Left = textBox4.Left + textBox4.Width + 1;
+                iwdt = dgv.Columns[5].Width;
+                textBox5.Width = iwdt;
+
+                textBox6.Left = textBox5.Left + textBox5.Width + dgv.Columns[6].Width + 1;
+                iwdt = dgv.Columns[7].Width;
+                textBox6.Width = iwdt;
+
+                textBox7.Left = textBox6.Left + textBox6.Width + dgv.Columns[8].Width + 1;
+                iwdt = dgv.Columns[9].Width;
+                textBox7.Width = iwdt;
+                #endregion
+            }
+            this.Visible = true;
         }
 
         private void ExportXls(DataGridView dgv)
@@ -374,15 +686,13 @@ namespace k001_shukka
             }
             #endregion
             //string filePath = @"C:\app\temp.xlsx";
-            string fileNm = string.Format("{1}入庫確認{0}.xlsx", DateTime.Now.ToLongDateString(), argVals[0]);
+            string fileNm = string.Format("{1}出荷管理表{0}.xlsx", DateTime.Now.ToLongDateString(), argVals[0]);
             var fp = System.IO.Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), fileNm);
 
             //using (var book = new XLWorkbook(XLEventTracking.Disabled))
             //{
             //    var sheet1 = book.AddWorksheet("シート1");
-
-
 
             using (var wb = new ClosedXML.Excel.XLWorkbook(XLEventTracking.Disabled))
             {
@@ -405,215 +715,71 @@ namespace k001_shukka
                 string[] sRcv = promag_frm.F05_YN.ShowMiniForm(sSet);
                 fileNm = System.Environment.GetFolderPath(Environment.SpecialFolder.Personal) + "\\" + fileNm;
                 if (sRcv[0].Length > 0) System.Diagnostics.Process.Start(fileNm);
-
             }
         }
 
-        private void RegistRecipt()
+        private string sChkJuchuExist()
         {
-            #region 登録前確認
-            if (dgv0.SelectedRows.Count == 0)
-            {
-                string[] sSet = { "一覧から対象を選択して下さい。", "false" };
-                string[] sRcv = promag_frm.F05_YN.ShowMiniForm(sSet);
-                return;
-            }
-            else
-            {
-
-                string sComment = "選択されているLotを登録します。";
-                string[] sSet = { sComment, "" };
-                string[] sRcv = promag_frm.F05_YN.ShowMiniForm(sSet);
-                if (sRcv[0].Length == 0) return;
-            }
-            #endregion
-            string sINS = string.Empty;
-            string sINSVAL = string.Empty;
-            // 予定SEQと製造元を抽出
-            sINS = "INSERT INTO t_b_warehouse (";
-            sINS += "LOT_NO,LOT_SEQ,STATUS0,LOCATION,UPD_ID,UPD_DATE,LGC_DEL";
-            sINS += ") VALUES ";
-            for (int i = 0; i < dgv0.Rows.Count; i++)
-            {
-                if (dgv0.Rows[i].Selected)
-                {
-                    string sLot = dgv0.Rows[i].Cells[2].Value.ToString();
-                    string sSEQ = dgv0.Rows[i].Cells[0].Value.ToString();
-
-                    sINSVAL += string.Format(
-                            ",('{0}', {1}, NOW(), 3, '{2}', NOW(), '0')"
-                            , sLot, sSEQ, usr.id);
-                }
-            }
-            sINS += sINSVAL.Substring(1) + ";";
-
-
-            kyDb con = new kyDb();
-            con.ExecSql(false, DEF_CON.Constr(), sINS);
-
-            GetData(dgv0, bs0, GetOrder());
+            string s = string.Empty;
+            s =
+            "SELECT"
+             + " jc.SEQ"  //0
+             + " ,jc.JDNNO"  //1
+             + " ,jc.LINNO"  //2
+             + " ,jc.SOUCD"
+             + " FROM kyoei.sc_juchu jc"  //3
+             + " LEFT JOIN kyoei.t_shipment_inf si"  //4
+             + " ON jc.JDNNO = si.JDNNO AND jc.LINNO = si.LINNO"  //5
+             + " WHERE si.JDNNO IS NULL AND si.LINNO IS NULL AND jc.LGC_DEL = '0'"  //6
+             + " ;";
+            return s;
         }
 
-        private void CalcWT()
+        private void textBox_TextChanged(object sender, EventArgs e)
         {
-            int ic = 4;
-            if (pDisp == 1) ic = 5;
-            if (pDisp == 2) ic = 11;
-            double dWt = fn.lColumnSum(dgv0, ic);
-            int iWt = (int)dWt;
-            label3.Text = dWt.ToString("#,0");
-            //if (dgv0.Rows.Count > 0)
-            //{
-            //    int iw = 0;
-            //    for (int i = 0; i < 6; i++)
-            //    {
-            //        iw += dgv0.Columns[i].Width;
-            //    }
-            //    label3.Left = dgv0.Left + iw;
-
-            //}
-        }
-
-        private void ChkFilter()
-        {
-            //if (dgv0.Rows.Count <= 0) return;
-            sFilter = string.Empty;
-
-            //if (textBox1.Text.Length > 0) sFilter += string.Format(
-            //     " AND 生産工場 LIKE '%{0}%'", textBox1.Text);
-            //if (textBox2.Text.Length > 0) sFilter += string.Format(
-            //     " AND 予定No = {0}", textBox2.Text);
-            //if (textBox3.Text.Length > 0) sFilter += string.Format(
-            //     " AND 向け先 LIKE '%{0}%'", textBox3.Text);
-            try
+            TextBox tb = (TextBox)sender;
+            string sFilter = string.Empty;
+            if (textBox0.Text.Length > 0)
             {
-                if (sFilter.Length > 4) sFilter = sFilter.Substring(4);
+                sFilter += string.Format(" AND (出荷No = '{0}')", textBox0.Text);
+            }
+            if (textBox1.Text.Length > 0)
+            {
+                sFilter += string.Format(" AND (伝票番号 LIKE '%{0}%')", textBox1.Text);
+            }
+            if (textBox2.Text.Length > 0)
+            {
+                sFilter += string.Format(" AND (行番号 LIKE '%{0}%')", textBox2.Text);
+            }
+            if (textBox3.Text.Length > 0)
+            {
+                sFilter += string.Format(" AND (出荷日 LIKE '%{0}%')", textBox3.Text);
+            }
+            if (textBox4.Text.Length > 0)
+            {
+                sFilter += string.Format(" AND (出荷先 LIKE '%{0}%')", textBox4.Text);
+            }
+            if (textBox5.Text.Length > 0)
+            {
+                sFilter += string.Format(" AND (品名 LIKE '%{0}%')", textBox5.Text);
+            }
+            if (textBox6.Text.Length > 0)
+            {
+                sFilter += string.Format(" AND (STATUS LIKE '%{0}%')", textBox6.Text);
+            }
+            if (textBox7.Text.Length > 0)
+            {
+                sFilter += string.Format(" AND (出荷番号 LIKE '%{0}%')", textBox7.Text);
+            }
+
+            if (sFilter.Length > 0)
+            {
+                sFilter = sFilter.Substring(4);
                 bs0.Filter = sFilter;
-
-                FillDgvCount(dgv0, label1);
-                if (dgv0.Rows.Count > 0)
-                {
-                    int ileft = 0;
-                    for (int i = 0; i < 2; i++)
-                    {
-                        ileft += dgv0.Columns[i].Width;
-                    }
-                    textBox1.Left = dgv0.Left + ileft;
-                    textBox1.Width = dgv0.Columns[2].Width;
-                    //textBox2.Left = dgv0.Left;
-                    //textBox2.Width = dgv0.Columns[0].Width;
-                    //textBox3.Left = textBox1.Left + textBox1.Width + 3;
-                    //textBox3.Width = dgv0.Columns[3].Width;
-                }
-                CalcWT();
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show("検索出来ない文字列を含んでいます。", ex.GetType().FullName);
-            }
-        }
-
-        private void ctrl_Changed(object sender, EventArgs e)
-        {
-            // チェックボックスの動きを制御
-            Control c = (Control)sender;
-
-            ChkFilter();
-        }
-
-        private void SendMail(string sAtesaki, string SEQs, string BIKOU)
-        {
-            //MailMessageの作成
-            System.Net.Mail.MailMessage msg = new System.Net.Mail.MailMessage();
-            //送信者（メールアドレスが"sender@xxx.xxx"、名前が"鈴木"の場合）
-            msg.From = new System.Net.Mail.MailAddress("tetra_admin@kyoei-rg.co.jp", "Tetra");
-            //宛先（メールアドレスが"recipient@xxx.xxx"、名前が"加藤"の場合）
-            msg.To.Add(new System.Net.Mail.MailAddress(sAtesaki, sAtesaki)); // 第2引数"テトラ"
-            //件名
-            string sSub = string.Empty;
-            string sBody = string.Empty;
-            string sFooter = "\r\n\r\n\r\n\r\n\r\n"
-              + "===================================\r\n"
-              + "本メールは送信専用のメールアドレスからお送りしています。\r\n"
-              + "返信いただいても、送信元には届きませんのであらかじめご了承下さい。";
-            if (usr.iDB == 1) sSub = "■■■テストメール■■■";
-            if (argVals[0] == "2")
-            {
-                sSub += "<小山工場>出荷予定否認連絡";
-            }
-            if (argVals[0] == "1")
-            {
-                sSub += "<協栄物流>出荷予定配車■■不可■■連絡";
-            }
-            if (argVals[0] == "3")
-            {
-                sSub += "<MRBC>出荷予定否認連絡";
-            }
-            msg.Subject = sSub;
-            //本文
-            sBody = string.Format("予定No.[{0}]について、\r\n", SEQs);
-            if (argVals[0] == "1") sBody += "配車不可 と回答されました。\r\n";
-            else sBody += "受入不可 と回答されました。\r\n";
-            if (argVals[0] == "1") sBody += "物流本社と、調整をお願いします。\r\n";
-            else sBody += "受入れ先と、日程又は数量の調整をお願いします。\r\n";
-            if (argVals[0] == "1") sBody += string.Format("\r\n配車不可理由：{0}", BIKOU);
-            else sBody += string.Format("\r\n受入れ不可理由：{0}", BIKOU);
-            sBody += sFooter;
-            msg.Body = sBody;
-
-
-            System.Net.Mail.SmtpClient sc = new System.Net.Mail.SmtpClient();
-            //SMTPサーバーなどを設定する
-            sc.Host = "153.149.193.142";
-            sc.Port = 587;
-            sc.DeliveryMethod = System.Net.Mail.SmtpDeliveryMethod.Network;
-            //メッセージを送信する
-            sc.Send(msg);
-
-            //後始末
-            msg.Dispose();
-            //後始末（.NET Framework 4.0以降）
-            sc.Dispose();
-        }
-        private void SendOKMail(string sAtesaki, string SEQs)
-        {
-            //MailMessageの作成
-            System.Net.Mail.MailMessage msg = new System.Net.Mail.MailMessage();
-            //送信者（メールアドレスが"sender@xxx.xxx"、名前が"鈴木"の場合）
-            msg.From = new System.Net.Mail.MailAddress("tetra_admin@kyoei-rg.co.jp", "Tetra");
-            //宛先（メールアドレスが"recipient@xxx.xxx"、名前が"加藤"の場合）
-            msg.To.Add(new System.Net.Mail.MailAddress(sAtesaki, sAtesaki)); // 第2引数"テトラ"
-            //件名
-            string sSub = string.Empty;
-            string sBody = string.Empty;
-            string sFooter = "\r\n\r\n\r\n\r\n\r\n"
-              + "===================================\r\n"
-              + "本メールは送信専用のメールアドレスからお送りしています。\r\n"
-              + "返信いただいても、送信元には届きませんのであらかじめご了承下さい。";
-            if (usr.iDB == 1) sSub = "■■■テストメール■■■";
-
-            sSub += "<協栄物流>出荷予定配車「受付」連絡";
-            msg.Subject = sSub;
-            //本文
-            sBody = string.Format("予定No.[{0}]について、\r\n", SEQs);
-            sBody += "予定を確認しました。\r\n";
-            sBody += "別途調整が発生する場合もございますので予めご了承下さい。\r\n";
-            sBody += sFooter;
-            msg.Body = sBody;
-
-
-            System.Net.Mail.SmtpClient sc = new System.Net.Mail.SmtpClient();
-            //SMTPサーバーなどを設定する
-            sc.Host = "153.149.193.142";
-            sc.Port = 587;
-            sc.DeliveryMethod = System.Net.Mail.SmtpDeliveryMethod.Network;
-            //メッセージを送信する
-            sc.Send(msg);
-
-            //後始末
-            msg.Dispose();
-            //後始末（.NET Framework 4.0以降）
-            sc.Dispose();
+            else bs0.Filter = string.Empty;
+            FillDgvCount(dgv0, label1);
+            arrageTextBW(dgv0);
         }
 
         #region dgvクリック関連
@@ -624,9 +790,43 @@ namespace k001_shukka
 
         private void dgv0_CellClick(object sender, DataGridViewCellEventArgs e)
         {
+            button7.Enabled = false;
+            button10.Enabled = false;
             DataGridView dgv = (DataGridView)sender;
             // データ欄以外は何もしない
             if (!bdgvCellClk) return;
+            string s = dgv.Rows[e.RowIndex].Cells[7].Value.ToString();
+            s = s.Substring(0, 1);
+            if (s == "0") button7.Enabled = true;
+            if (s == "6") button10.Enabled = true;
+
+            int ir = e.RowIndex;
+            int ic = e.ColumnIndex;
+            try
+            {
+                s = dgv.Rows[ir].Cells[ic].Value.ToString();
+
+                //アプリケーション終了後、クリップボードからデータは削除される
+                Clipboard.SetDataObject(s);
+                //フォーム上の座標でマウスポインタの位置を取得する
+                //画面座標でマウスポインタの位置を取得する
+                System.Drawing.Point sp = System.Windows.Forms.Cursor.Position;
+                //画面座標をクライアント座標に変換する
+                System.Drawing.Point cp = this.PointToClient(sp);
+                //X座標を取得する
+                int x = cp.X;
+                //Y座標を取得する
+                int y = cp.Y;
+                label2.Left = x; label2.Top = y;
+                label2.Text = "コピーしました。";
+                this.Refresh();
+                System.Threading.Thread.Sleep(100);
+                label2.Text = ""; label2.Left = 0; label2.Top = 0;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
         }
 
         private void dgv0_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
@@ -636,40 +836,1262 @@ namespace k001_shukka
             if (!bdgvCellClk) return;
             int ir = e.RowIndex;
 
-            //// ダブルクリック前に列の並び替えが行われていれば、その状態を記憶
-            //string sOrder = string.Empty;
-            //string sOrdColName = string.Empty;
-            //if (dgv.SortedColumn != null)
-            //{
-            //    if (dgv.SortOrder.ToString() == "Ascending") sOrder = "ASC";
-            //    else sOrder = "DESC";
-            //    sOrdColName = dgv.SortedColumn.Name;
-            //}
+            // ダブルクリック前に列の並び替えが行われていれば、その状態を記憶
+            string sOrder = string.Empty;
+            string sOrdColName = string.Empty;
+            if (dgv.SortedColumn != null)
+            {
+                if (dgv.SortOrder.ToString() == "Ascending") sOrder = "ASC";
+                else sOrder = "DESC";
+                sOrdColName = dgv.SortedColumn.Name;
+            }
 
-            //string s0 = dgv.Rows[e.RowIndex].Cells[0].Value.ToString(); // SEQ
-            //string[] sendText = { "edit", s0 };
-            //string[] receiveText = F02_EditOrder.ShowMiniForm(this, sendText);
+            string s0 = dgv.Rows[e.RowIndex].Cells[0].Value.ToString(); // SEQ
+            string s1 = dgv.Rows[e.RowIndex].Cells[13].Value.ToString(); // HINCD
+            string[] sendText = { s0, s1 };
 
-            //GetData(dgv0, bs0, GetOrder());
-            //// 並び順をダブルクリック前に戻し値を検索
-            //if (sOrder.Length > 0)
-            //{
-            //    bs0.Sort = string.Format("{0} {1}", sOrdColName, sOrder);
+            //// FRMxxxxから送られてきた値を受け取る
+            string[] receiveText = F02_EditOrder.ShowMiniForm(this, sendText);
 
-            //    for (int r = 0; r < dgv.Rows.Count; r++)
-            //    {
-            //        if (dgv.Rows[r].Cells[0].Value.ToString() == s0)
-            //        {
-            //            ir = r;
-            //            break;
-            //        }
-            //    }
-            //}
-            //dgv0.Rows[ir].Selected = true;
-            //if (ir + 1 < dgv.Rows.Count) dgv0.FirstDisplayedScrollingRowIndex = ir;
+            GetData(dgv0, bs0, GetOrder());
+            this.Visible = false;
+            arrageTextBW(dgv);
+            
+            // 並び順をダブルクリック前に戻し値を検索
+            if (sOrder.Length > 0)
+            {
+                bs0.Sort = string.Format("{0} {1}", sOrdColName, sOrder);
 
+                for (int r = 0; r < dgv.Rows.Count; r++)
+                {
+                    if (dgv.Rows[r].Cells[0].Value.ToString() == s0)
+                    {
+                        ir = r;
+                        break;
+                    }
+                }
+            }
+
+            if (ir + 1 < dgv.Rows.Count)
+            {
+                dgv0.Rows[ir].Selected = true;
+                dgv0.FirstDisplayedScrollingRowIndex = ir;
+            }
+            this.Visible = true;
         }
         #endregion
 
+        private void dgv0_ColumnWidthChanged(object sender, DataGridViewColumnEventArgs e)
+        {
+            DataGridView dgv = (DataGridView)sender;
+            if (fn.dgvWidth(dgv) < 1300)
+            {
+                this.Width = fn.dgvWidth(dgv) + 40;
+                dgv.Width = fn.dgvWidth(dgv);
+            }
+            else
+            {
+                this.Width = 1300;
+                dgv.Width = this.Width - 40;
+            }
+        }
+
+        private string sGetJuchu(string sDNNO)
+        {
+            return string.Format(
+                  "SELECT"
+                + "   si.GA_SEQ"  //0
+                + " , CASE"
+                + "   WHEN jc.SYUYTIDT IS NOT NULL"
+                + "   THEN CONCAT(SUBSTRING(jc.NOKDT,1,4),'/',SUBSTRING(jc.NOKDT,5,2)"
+                + "    ,'/',SUBSTRING(jc.NOKDT,7,2))"
+                + "   ELSE DATE_FORMAT(si.DUE_DATE, '%y/%m/%d') END 納品日"  //1
+                + "   , jc.TOKCD 得意先コード"  //2
+                + "   , IFNULL(jc.NHSNM,si.DESTINATION) 得意先"  //3
+                + "   , jc.TANNM 営業担当"  //4 
+                + "   , jc.JDNNO 伝票番号"  //5
+                + "   , jc.NHSAD 住所"  //6
+                + "   , jc.NHSTL 電話"  //7
+                + "   , IFNULL(jc.HINNMA, si.ITEM) 品名"  //8
+                + "   , IFNULL(jc.UODSU,si.SHIPMENT_QUANTITY) 数量"  //9
+                + "   , jc.UODTK 単価"  //10
+                + "   , jc.LINCM 摘要"  //11
+                + "   , jc.NHSZP 郵便"  //12
+                + "   , jc.UODTK 単価"  //13
+                + "   , jc.LINCM 摘要"  //14
+                + "   , jc.UNTNM 単位 "  //15
+                + "  FROM kyoei.t_shipment_inf si"
+                + "  LEFT JOIN kyoei.sc_juchu jc"
+                + "   ON si.JDNNO = jc.JDNNO AND si.LINNO = jc.LINNO"
+                + "  WHERE si.JDNNO = '{0}'"
+                + "  ORDER BY si.LINNO;"
+                , sDNNO);
+        }
+
+        private string GetSEQ(string DENNO)
+        {
+            return string.Format(
+                    "SELECT"
+                 + " si.SEQ"  //0
+                 + " FROM kyoei.t_shipment_inf si"
+                 + " LEFT JOIN kyoei.sc_juchu sj"
+                 + " ON sj.JDNNO = si.JDNNO AND sj.LINNO = si.LINNO"
+                 + " WHERE sj.JDNNO = '{0}';"
+                 , DENNO
+                );
+        }
+
+        /*
+担当者コード	TANCD
+担当者名	TANNM
+受注伝票番号	JDNNO
+行番号	LINNO
+
+得意先名	TOKNM
+納品先コード	NHSCD
+納品先名	NHSNM
+納品先郵便番号	NHSZP
+
+納品先住所	NHSAD
+納品先電話番号	NHSTL
+
+納品先担当者名	NHSCTANM
+商品名	HINNMA
+商品コード	HINCD
+出荷数	UODSU
+単位	UNTNM
+出荷日	SYUYTIDT
+
+単価	UODTK
+摘要	LINCM
+更新日	UPD_DATE
+         */
+        private void prtVoucher(string sKBN)
+        {
+            // ここに至る前に、dagagridviewの選択状態を確認する
+            #region 作業フォルダ作成
+            string path = @"C:\tetra";
+            if (!System.IO.Directory.Exists(path))
+            {
+                System.IO.Directory.CreateDirectory(path);
+            }
+            string fn = @"C:\tetra\kyoei_stamp.png";
+            string fn0 = DEF_CON.FLSvrSub + @"template\kyoei_stamp.png";
+            if (!System.IO.File.Exists(fn) ||
+                File.GetLastWriteTime(fn) < File.GetLastWriteTime(fn0))
+            {
+                File.Copy(fn0, fn, true);
+            }
+            fn = @"C:\tetra\kyoei_kakuin.png";
+            fn0 = DEF_CON.FLSvrSub + @"template\kyoei_kakuin.png";
+            if (!System.IO.File.Exists(fn) ||
+                File.GetLastWriteTime(fn) < File.GetLastWriteTime(fn0))
+            {
+                File.Copy(fn0, fn, true);
+            }
+            #endregion
+            System.Diagnostics.Process p;
+
+            #region 出力先を指定
+            string newFile0 = @"C:\tetra\";   //ファイルの出力先を設定
+            //if (usr.iDB == 1) newFile0 = @"\\10.100.10.23\tetra\test\";
+            //else newFile0 = @"\\10.100.10.23\tetra\delivery_note\";
+            #endregion
+
+            mydb.kyDb con = new mydb.kyDb();
+            // 得意先コードを納品書の住所にする場合
+            string SCTOK = string.Empty;
+            string SCZP = string.Empty;
+            string SCAD = string.Empty;
+            string SCTL = string.Empty;
+            if(sKBN == "1")
+            {
+                try
+                {
+                    #region 得意先コードを得るSQL
+                    string sTOKCD = dgv0.CurrentRow.Cells[12].Value.ToString();
+                    string GetTOK = string.Format(
+                        "SELECT"
+                         + " CONCAT(tok.TOKNMA,tok.TOKNMB) A"  //0
+                         + " ,tok.TOKZP"  //1
+                         + " ,CONCAT(CONCAT(tok.TOKADA,tok.TOKADB),tok.TOKADC) B"  //2
+                         + " ,tok.TOKTL"  //3
+                         + " FROM KEI_USR1.TOKMTA tok"
+                         + " WHERE tok.TOKCD = '{0}'"
+                        , sTOKCD);
+                    #endregion
+                    using (var oracon = new OracleConnection())
+                    {
+                        #region コードに直接指定する場合
+                        //ユーザ端末にはクライアントをインストールしないのでtnsnames.oraが存在しない
+                        //tnsnamesは直接指定する
+                        //var DataSource = "ORCL=" +
+                        //"(DESCRIPTION =" +
+                        //"(ADDRESS = (PROTOCOL = TCP)(HOST = 10.100.10.11)(PORT = 1521))" +
+                        //"(CONNECT_DATA =" +
+                        //"(SERVER = DEDICATED)" + 
+                        ////"(SERVER = SHARED)" + 
+                        //"(SERVICE_NAME = ORCL)" +
+                        //")" +
+                        //")";
+                        //oracon.ConnectionString = "User ID=KEI_ROU; Password=P; Data Source=" + DataSource + ";";
+                        #endregion
+                        oracon.ConnectionString = "User ID=KEI_ROU;Password=P;Data Source=SDS;";
+                            //+ "Connection Timeout=60;";
+                        OracleCommand oracom = new OracleCommand(GetTOK, oracon);
+                        
+                        oracon.Open();
+                        OracleDataReader ordr;
+                        ordr = oracom.ExecuteReader();
+
+                        while (ordr.Read())
+                        {
+                            SCTOK = ordr.GetString(0);
+                            SCZP = ordr.GetString(1);
+                            SCAD = ordr.GetString(2);
+                            SCTL = ordr.GetString(3);
+                        }
+                        ordr.Close();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "エラー");
+                    return;
+                }
+            }
+            for (int i = 0; i < dgv0.Rows.Count; i++)
+            {
+                if (dgv0.Rows[i].Selected
+                    && dgv0.Rows[i].Cells[2].Value.ToString() == "001") // 選択行の納品書を作成する
+                {
+                    #region iTextでドキュメントを新規作成
+                    iTextSharp.text.Rectangle new_Pagesize = new iTextSharp.text.Rectangle(PageSize.A4);//(横,縦)
+                                                                                                        //ドキュメントを作成
+                    iTextSharp.text.Document doc = new iTextSharp.text.Document(new_Pagesize, 16f, 16f, 12f, 12f); //(ページサイズ, 左マージン, 右マージン, 上マージン, 下マージン);
+                    #endregion
+                    // 行番号が001のものに限定して伝票番号でデータを抽出し配列vに格納する
+                    #region gaSeq, 1納品日, 2得意先CD, 3得意先, 営業, 5伝番, 6住所, 電話, 8品名, 数量, 10単価, 摘要, 12〒
+                    string sDenNo = dgv0.Rows[i].Cells[1].Value.ToString();
+                    // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■　納品情報抽出
+                    con.GetData(sGetJuchu(sDenNo), DEF_CON.Constr());
+                    int iCount = con.ds.Tables[0].Rows.Count; // >5 毎に1枚伝票が増える
+                    int iDenCount = 0;
+                    if (iCount % 5 == 0) iDenCount = (iCount - 1) / 5;
+                    else iDenCount = iCount / 5 + 1; // (icount-1) ÷ 5 = 0.x +1 >> int にすれば1
+                    // 必ず5行揃える
+                    int plusRow = 5 - (iCount % 5);
+
+                    object[,] v
+                     = new object[con.ds.Tables[0].Rows.Count + plusRow, con.ds.Tables[0].Columns.Count];
+                    #region 一般的なvの格納
+                    //for (int ir = 0; ir < con.ds.Tables[0].Rows.Count; ir++)
+                    //{
+                    //    for (int ic = 0; ic < con.ds.Tables[0].Columns.Count; ic++)
+                    //    {
+                    //        v[ir, ic] = con.ds.Tables[0].Rows[ir][ic];
+                    //    }
+                    //}　3,12,6,7
+                    #endregion  
+                    for (int ir = 0; ir < v.GetLength(0); ir++)
+                    {
+                        if (ir < con.ds.Tables[0].Rows.Count)
+                        {
+                            for (int ic = 0; ic < con.ds.Tables[0].Columns.Count; ic++)
+                            {
+                                string stmp = con.ds.Tables[0].Rows[ir][ic].ToString();
+                                if (ic == 10) // 単価
+                                {
+                                    if (stmp == "0.00" || stmp.Length == 0) v[ir, ic] = "";
+                                    else v[ir, ic] = stmp;
+                                    if(usr.author < 9)
+                                    {
+                                        if (usr.id != "k0134" && usr.id != "k0107") v[ir, ic] = "";
+                                    }
+                                }
+                                else v[ir, ic] = stmp;
+                                if (sKBN == "1")
+                                {
+                                    if (ic == 3) v[ir, ic] = SCTOK;
+                                    if (ic == 6) v[ir, ic] = SCAD;
+                                    if (ic == 7) v[ir, ic] = SCTL;
+                                    if (ic == 12) v[ir, ic] = SCZP;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            for (int ic = 0; ic < con.ds.Tables[0].Columns.Count; ic++)
+                            {
+                                v[ir, ic] = "";
+                            }
+                        }
+                    }
+                    #endregion
+                    #region ファイル名を生成
+                    // delivery note 納品書 >>  delntXXX####
+                    string newFile = newFile0 + "delnt_" + v[0, 3].ToString() + "_" + v[0, 5];
+                    newFile += ".pdf";
+                    #endregion
+                    #region ファイル出力用のストリームを取得
+                    try
+                    {
+                        PdfWriter.GetInstance(doc, new FileStream(newFile, FileMode.Create));
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Windows.Forms.MessageBox.Show(ex.Message, "エラー");
+                        MessageBox.Show("受注伝票が開かれています。閉じてから作業して下さい。");
+                        return;
+                    }
+                    #endregion
+                    #region 本文用のフォント(MS P明朝) 設定
+                    Font fnt8 = new Font(BaseFont.CreateFont
+                       (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 8, iTextSharp.text.Font.NORMAL);
+                    Font fnt9 = new Font(BaseFont.CreateFont
+                       (@"c:\windows\fonts\msmincho.ttc,0", BaseFont.IDENTITY_H, true), 9, iTextSharp.text.Font.NORMAL);
+                    Font fnt10 = new Font(BaseFont.CreateFont
+                       (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 10, iTextSharp.text.Font.NORMAL);
+                    Font fnt16 = new Font(BaseFont.CreateFont
+                       (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 16, iTextSharp.text.Font.NORMAL);
+                    Font fnt11 = new Font(BaseFont.CreateFont
+                       (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 11, iTextSharp.text.Font.NORMAL);
+                    Font fnt12 = new Font(BaseFont.CreateFont
+                       (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 12, iTextSharp.text.Font.NORMAL);
+                    Font fnt4 = new Font(BaseFont.CreateFont
+                           (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 6, iTextSharp.text.Font.BOLD);
+                    #endregion
+                    //文章の出力を開始します。
+
+                    doc.Open();
+                    #region 本体作成
+                    try
+                    {
+
+                        for (int ir = 0; ir < iDenCount; ir++)
+                        {
+                            for (int ip = 0; ip < 3; ip++) // 3枚連ちゃんなので
+                            {
+                                #region 先頭行 = 「納品書」　18f
+                                float[] headerwidth = new float[] { 0.3f, 0.4f, 0.3f };
+                                PdfPCell cell;
+                                //3列からなるテーブルを作成
+                                PdfPTable tbl = new PdfPTable(headerwidth);
+                                //テーブル全体の幅（パーセンテージ）
+                                tbl.WidthPercentage = 100;
+                                tbl.HorizontalAlignment = Element.ALIGN_CENTER;
+                                tbl.DefaultCell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                                //テーブルの余白
+                                tbl.DefaultCell.Padding = 2;
+                                #region ヘッダ　= タイトル設定
+                                string sTitle = "納 品 書（控）";
+                                if (ip == 1) sTitle = "納 品 書";
+                                else if (ip == 2) sTitle = "納 品 受 領 書";
+                                #endregion
+                                // テーブルの中身
+                                string[] sHeader = new string[] { "", "", sTitle };
+                                //テーブルのセル間の間隔
+                                //tbl.Spacing = 0;
+                                //テーブルの線の色（RGB:黒）
+                                tbl.DefaultCell.BorderColor = BaseColor.BLACK;
+                                //タイトルのセルを追加
+                                for (int j = 0; j < sHeader.GetLength(0); j++)
+                                {
+                                    cell = new PdfPCell(new Phrase(sHeader[j], fnt16));
+                                    //if (j == 1) cell = new PdfPCell(new Phrase(sHeader[j], fnt12));
+                                    //if (j == 2) cell = new PdfPCell(new Phrase(sHeader[j], fnt14));
+                                    cell.BorderColor = BaseColor.WHITE;
+
+                                    cell.FixedHeight = 20f; // <--高さ
+                                    cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                                    cell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                                    if (j == 2) cell.HorizontalAlignment = Element.ALIGN_RIGHT;
+                                    //cell.BackgroundColor = BaseColor.LIGHT_GRAY; // セルの拝啓
+                                    //cell.Colspan = 2; // セルのマージ
+                                    tbl.AddCell(cell);
+                                }
+                                doc.Add(tbl);
+                                #endregion 先頭行 10f
+
+                                #region 最初の表
+                                //4列からなるテーブルを作成
+                                headerwidth = new float[] { 0.14f, 0.26f, 0.25f, 0.25f };
+                                PdfPTable tbl1 = new PdfPTable(headerwidth);
+                                //テーブル全体の幅（パーセンテージ）
+                                tbl1.WidthPercentage = 60;
+                                tbl1.HorizontalAlignment = Element.ALIGN_RIGHT;
+                                tbl1.DefaultCell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                                //テーブルの余白>> 設定済み tbl.DefaultCell.Padding = 2;
+                                string sDue = v[0, 1].ToString();
+                                string sTokCD = v[0, 2].ToString();
+                                string sTanto = v[0, 4].ToString();
+                                string sDen = v[0, 5].ToString();
+                                sDen += string.Format(" ({0}/{1})", (ir + 1).ToString(), iDenCount.ToString());
+                                string[] item = new string[] { "年月日", "お得意様コード", "担当", "伝票番号" };
+                                string[] item2 = new string[] { sDue, sTokCD, sTanto, sDen };
+                                float fHi = 15f;
+
+                                #region テーブル1行目
+                                for (int j = 0; j < item.Length; j++)
+                                {
+                                    //セルの追加
+                                    cell = new PdfPCell(new Phrase(item[j], fnt9));
+                                    // 全体の線の太さの設定
+                                    cell.BorderWidthTop = 0.8f;
+                                    cell.BorderWidthLeft = 0f;
+                                    cell.BorderWidthRight = 0.25f;
+                                    cell.BorderWidthBottom = 0.25f;
+                                    // 最初のセル
+                                    if (j == 0) cell.BorderWidthLeft = 0.8f;
+                                    // 最後のセル
+                                    if (j == item.Length - 1) cell.BorderWidthRight = 0.8f;
+                                    cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                                    cell.FixedHeight = fHi; // <--これ
+                                    cell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                                    tbl1.AddCell(cell);
+                                }
+                                //テーブルを追加
+                                doc.Add(tbl1);
+                                #endregion
+                                #region テーブル2行目
+                                PdfPTable tbl2 = new PdfPTable(headerwidth);
+                                tbl2.WidthPercentage = 60;
+                                tbl2.HorizontalAlignment = Element.ALIGN_RIGHT;
+                                tbl2.DefaultCell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                                for (int j = 0; j < item.Length; j++)
+                                {
+                                    //セルの追加
+                                    cell = new PdfPCell(new Phrase(item2[j], fnt9));
+                                    // 全体の線の太さの設定
+                                    cell.BorderWidthTop = 0f;
+                                    cell.BorderWidthLeft = 0f;
+                                    cell.BorderWidthRight = 0.25f;
+                                    cell.BorderWidthBottom = 0.8f;
+                                    // 最初のセル
+                                    if (j == 0) cell.BorderWidthLeft = 0.8f;
+                                    // 最後のセル
+                                    if (j == item.Length - 1) cell.BorderWidthRight = 0.8f;
+                                    cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                                    cell.FixedHeight = fHi; // <--これ
+                                    cell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                                    tbl2.AddCell(cell);
+                                }
+                                //テーブルを追加
+                                doc.Add(tbl2);
+                                #endregion
+                                #endregion 終 最初の表
+
+                                #region 宛先等
+                                string sPostCD = v[0, 12].ToString();
+                                string sAcc = v[0, 3].ToString();
+                                sAcc += " 様";
+                                sAcc = sAcc.Replace(" ", "");
+                                string sTEL = v[0, 7].ToString();
+                                string sADD = v[0, 6].ToString();
+                                sADD = sADD.Replace(" ", "");
+                                headerwidth = new float[] { 0.5f }; // ----------------------------
+                                PdfPTable tbl3 = new PdfPTable(headerwidth);
+                                item = new string[] { sPostCD, sADD, sAcc, sTEL };
+                                tbl3.WidthPercentage = 40;
+
+                                tbl3.DefaultCell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                                fHi = 15f;
+                                if (ip == 2) tbl3.HorizontalAlignment = Element.ALIGN_RIGHT;
+                                else tbl3.HorizontalAlignment = Element.ALIGN_LEFT;
+                                tbl3.DefaultCell.Padding = 0;
+
+                                for (int irow = 0; irow < item.GetLength(0); irow++)
+                                {
+                                    if (irow == 2)
+                                    {
+                                        cell = new PdfPCell(new Phrase(item[irow], fnt12));
+                                        cell.FixedHeight = 34f;
+                                    }
+                                    else
+                                    {
+                                        cell = new PdfPCell(new Phrase(item[irow], fnt10));
+                                        cell.FixedHeight = 14f; // <--これ
+                                    }
+
+                                    cell.BorderWidth = 0f;
+                                    cell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                                    cell.HorizontalAlignment = Element.ALIGN_LEFT;
+                                    tbl3.AddCell(cell);
+                                }
+                                doc.Add(tbl3);
+                                #endregion
+                                #region ロゴを追加
+                                // c:\apps\kyoei_kakuin.png c:\apps\kyoei_stamp.png
+
+                                if (ip == 2)
+                                {
+                                    if (sTokCD != "0000014101601") // 髙安の時は不要
+                                    {
+                                        iTextSharp.text.Image image
+                                            = iTextSharp.text.Image.GetInstance(new Uri(@"C:\tetra\kyoei_kakuin.png"));
+                                        iTextSharp.text.Image image2
+                                            = iTextSharp.text.Image.GetInstance(new Uri(@"C:\tetra\kyoei_stamp.png"));
+                                        image.ScalePercent(20.0f / 96.0f * 100f);
+                                        image.SetAbsolutePosition(510f, 425f); // 横 縦
+
+                                        image2.ScalePercent(25.0f / 100.0f * 100f);
+                                        image2.SetAbsolutePosition(440f, 715f); // 横 縦
+                                        doc.Add(image2);
+                                        image2.SetAbsolutePosition(394f, 430f); // 横 縦
+                                        doc.Add(image2);
+                                        image2.SetAbsolutePosition(30f, 155f); // 横 縦
+                                        doc.Add(image2);
+
+                                        doc.Add(image);
+                                        // 位置を調査
+                                        //iTextSharp.text.Image img
+                                        //= iTextSharp.text.Image.GetInstance(new Uri(@"c:\apps\line.png"));
+                                        //img.SetAbsolutePosition(0f, 280f); // 横 縦
+                                        //doc.Add(img);
+                                        //img.SetAbsolutePosition(0f, 560f); // 横 縦
+                                        //doc.Add(img);
+                                        //img.SetAbsolutePosition(0f, 841f); // 横 縦
+                                        //doc.Add(img);
+                                    }
+                                }
+                                #endregion
+                                #region メインの表
+                                #region メイン-ヘッダ行
+                                if (ip != 2)
+                                {
+                                    headerwidth = new float[] { 0.35f, 0.2f, 0.15f, 0.15f, 0.15f };
+                                    item = new string[] { "品　名　　・　　規　格", "数　量 ・ 単　位", "単　　価", "金　　額", "消 費 税 等" };
+                                }
+                                else
+                                {
+                                    headerwidth = new float[] { 0.35f, 0.2f, 0.45f };
+                                    item = new string[] { "品　名　　・　　規　格", "数　量 ・ 単　位", "受　　　領　　　印" };
+                                }
+                                PdfPTable tbl4 = new PdfPTable(headerwidth);
+
+                                tbl4.WidthPercentage = 100;
+                                fHi = 15f;
+
+                                #region メイン-ヘッダ行書き込み
+                                for (int j = 0; j < item.Length; j++)
+                                {
+                                    //セルの追加
+                                    cell = new PdfPCell(new Phrase(item[j], fnt9));
+                                    // 全体の線の太さの設定
+                                    cell.BorderWidthTop = 0.8f;
+                                    cell.BorderWidthLeft = 0f;
+                                    cell.BorderWidthRight = 0.25f;
+                                    cell.BorderWidthBottom = 0.8f;
+                                    // 最初のセル
+                                    if (j == 0) cell.BorderWidthLeft = 0.8f;
+                                    // 最後のセル
+                                    if (j == item.Length - 1) cell.BorderWidthRight = 0.8f;
+                                    cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                                    cell.FixedHeight = fHi; // <--これ
+                                    cell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                                    tbl4.AddCell(cell);
+                                }
+                                //テーブルを追加
+                                doc.Add(tbl4);
+                                #endregion
+                                #endregion
+                                //gaSeq, 1納品日, 2得意先CD, 3得意先, 営業, 5伝番, 6住所, 電話, 8品名, 数量, 10単価, 摘要, 12〒
+                                #region 内容行 tbl5
+                                if (ip != 2)
+                                {
+                                    #region 1,2枚目
+                                    headerwidth = new float[] { 0.35f, 0.2f, 0.15f, 0.15f, 0.15f };
+                                    PdfPTable tbl5 = new PdfPTable(headerwidth);
+                                    tbl5.WidthPercentage = 100;
+                                    fHi = 18f;
+                                    // ir = iDencount
+                                    for (int irow = ir * 5; irow < 5 + ir * 5; irow++)
+                                    {
+                                        string s1 = string.Empty;
+                                        if (v[irow, 9].ToString().Length > 0) s1 = string.Format("{0:#,0.00}{1}", decimal.Parse(v[irow, 9].ToString()), v[irow, 15].ToString());
+                                        string s2 = string.Empty;
+                                        if (v[irow, 10].ToString().Length > 0) s2 = string.Format("{0:#.00}", decimal.Parse(v[irow, 10].ToString()));
+                                        string s3 = string.Empty;
+                                        if (s1.Length > 0 && s2.Length > 0)
+                                        {
+                                            s3 = (decimal.Parse(v[irow, 9].ToString()) * decimal.Parse(v[irow, 10].ToString())).ToString();
+                                            s3 = string.Format("{0:#,0}", decimal.Parse(s3));
+                                        }
+                                        item = new string[] { v[irow, 8].ToString()
+                                        , s1, s2, s3, "" };
+                                        #region テーブル1行目
+                                        for (int j = 0; j < item.Length; j++)
+                                        {
+                                            //セルの追加
+                                            if (j == 0)
+                                            {
+                                                cell = new PdfPCell(new Phrase(item[j], fnt9));
+                                                cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                                            }
+                                            else
+                                            {
+                                                cell = new PdfPCell(new Phrase(item[j], fnt10));
+                                                if (j == 1) cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                                                else cell.HorizontalAlignment = Element.ALIGN_RIGHT;
+                                            }
+                                            cell.FixedHeight = fHi; // <--これ
+                                            // 全体の線の太さの設定
+                                            cell.BorderWidthTop = 0.25f;
+                                            cell.BorderWidthLeft = 0f;
+                                            cell.BorderWidthRight = 0.25f;
+                                            cell.BorderWidthBottom = 0f;
+                                            if (irow == 0) cell.BorderWidthTop = 0f;
+                                            // 最初のセル
+                                            if (j == 0) cell.BorderWidthLeft = 0.8f;
+                                            // 最後のセル
+                                            if (j == item.Length - 1) cell.BorderWidthRight = 0.8f;
+                                            
+
+                                            cell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                                            tbl5.AddCell(cell);
+                                        }
+                                    }
+                                    doc.Add(tbl5);
+                                    #endregion
+                                    #endregion
+                                }
+                                else
+                                {
+                                    #region 3枚目
+                                    headerwidth = new float[] { 0.35f, 0.2f, 0.45f };
+                                    PdfPTable tbl5 = new PdfPTable(headerwidth);
+                                    tbl5.WidthPercentage = 100;
+                                    fHi = 20f;
+                                    // ir = iDencount
+                                    for (int irow = ir * 5; irow < 5 + ir * 5; irow++)
+                                    {
+                                        string s1 = string.Empty;
+                                        if (v[irow, 9].ToString().Length > 0) s1 = string.Format("{0:#.00}{1}", decimal.Parse(v[irow, 9].ToString()), v[irow, 15].ToString());
+                                        item = new string[] {
+                                            v[irow, 8].ToString()
+                                            , s1,  "" };
+                                        #region テーブル1行目
+                                        for (int j = 0; j < item.Length; j++)
+                                        {
+                                            //セルの追加
+                                            if(j == 1) cell = new PdfPCell(new Phrase(item[j], fnt10));
+                                            else cell = new PdfPCell(new Phrase(item[j], fnt9));
+                                            // 全体の線の太さの設定
+                                            cell.BorderWidthTop = 0.25f;
+                                            cell.BorderWidthLeft = 0f;
+                                            cell.BorderWidthRight = 0.25f;
+                                            cell.BorderWidthBottom = 0f;
+                                            if (irow == 0) cell.BorderWidthTop = 0f;
+                                            // 最初のセル
+                                            if (j == 0) cell.BorderWidthLeft = 0.8f;
+                                            // 最後のセル
+                                            if (j == item.Length - 1)
+                                            {
+                                                cell.BorderWidthTop = 0f;
+                                                cell.BorderWidthBottom = 0f;
+                                                cell.BorderWidthRight = 0.8f;
+                                            }
+                                            if (irow == 5 + ir * 5 - 1) cell.BorderWidthBottom = 0.8f;
+                                            cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                                            cell.FixedHeight = fHi; // <--これ
+                                            cell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                                            tbl5.AddCell(cell);
+                                        }
+                                    }
+                                    doc.Add(tbl5);
+                                    #endregion
+                                }
+                                #endregion
+                                #endregion
+
+                                #endregion
+
+                                #region 最終行
+                                if (ip != 2)
+                                {
+                                    headerwidth = new float[] { 0.35f, 0.05f, 0.02f, 0.18f, 0.02f, 0.18f, 0.02f, 0.18f };
+                                    PdfPTable tbl6 = new PdfPTable(headerwidth);
+                                    tbl6.WidthPercentage = 100;
+                                    tbl6.DefaultCell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                                    fHi = 26f;
+                                    decimal dTotal = 0;
+                                    for (int irow = ir * 5; irow < 5 + ir * 5; irow++)
+                                    {
+                                        decimal dQ = 0;
+                                        decimal dP = 0;
+                                        if (v[irow, 10].ToString().Length > 0)
+                                        {
+                                            dP = decimal.Parse(v[irow, 13].ToString());
+                                            dQ = decimal.Parse(v[irow, 9].ToString());
+                                            dTotal += decimal.Parse((dP * dQ).ToString());  // 切捨て
+                                        }
+                                    }
+                                    string s4 = string.Empty;
+                                    if (v[0, 11].ToString().Length > 0) s4 = "摘要:" + v[0, 11].ToString();
+                                    string s5 = "税\r\n抜";
+                                    string s6 = "税\r\n額";
+                                    string s7 = "総\r\n額";
+                                    string sTotal = string.Empty;
+                                    if (dTotal > 0) sTotal = string.Format("{0:#,0}", decimal.Parse(dTotal.ToString()));
+                                    item = new string[] { s4, "合計", s5, sTotal, s6, "", s7, sTotal };
+                                    for (int j = 0; j < item.Length; j++)
+                                    {
+                                        //セルの追加
+                                        if (j == 3 || j == 7)
+                                        {
+                                            cell = new PdfPCell(new Phrase(item[j], fnt10));
+                                        }
+                                        else
+                                        {
+                                            cell = new PdfPCell(new Phrase(item[j], fnt8));
+                                        }
+
+                                        cell.FixedHeight = fHi; // <--これ
+                                        // 全体の線の太さの設定
+                                        cell.BorderWidthTop = 0.25f;
+                                        cell.BorderWidthLeft = 0f;
+                                        cell.BorderWidthRight = 0.25f;
+                                        cell.BorderWidthBottom = 0.8f;
+                                        cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                                        // 最初のセル
+                                        if (j == 0)
+                                        {
+                                            cell.BorderWidthLeft = 0.8f;
+                                            cell.HorizontalAlignment = Element.ALIGN_LEFT;
+                                        }
+                                        // 最後のセル
+                                        if (j == item.Length - 1) cell.BorderWidthRight = 0.8f;
+
+
+                                        cell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                                        tbl6.AddCell(cell);
+                                    }
+                                    //テーブルを追加
+                                    doc.Add(tbl6);
+                                    Paragraph para = new Paragraph(" ", fnt9);
+                                    doc.Add(para);
+                                    doc.Add(para);
+                                }
+                                #endregion
+                            }
+                            if (ir != iDenCount - 1)
+                            {
+                                doc.NewPage();
+                            }
+                        } // iDenCount++
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine("---\r\n" + ex.Message + "\r\n" + ex.StackTrace);
+                        System.Windows.Forms.MessageBox.Show(ex.Message, "エラー");
+                    }
+                    doc.Close();
+                    p = System.Diagnostics.Process.Start(newFile);
+                } // 選択行&& [001]の処理　この手前で続きがあればnewpage
+
+
+            }
+            #endregion
+
+            //p = System.Diagnostics.Process.Start(newFile);
+
+            //p.WaitForExit();              // プロセスの終了を待つ
+            //int iExitCode = p.ExitCode;   // 終了コード
+            //lb_refreshData();
+        }
+
+        private string LotList(string shipSEQ)
+        {
+            string s = string.Format(
+                "SELECT"
+             + " si.SEQ"  //0
+             + " ,IFNULL(jc.HINNMA,si.ITEM)"  //1
+             + " ,IFNULL(jc.UODSU,si.SHIPMENT_QUANTITY)"  //2
+             + " ,tmp.WEIGHT"  //3
+             + " ,tmp.LOT_NO"  //4
+             + " ,SUBSTRING_INDEX(tmp.LOT_NO,'-',1) dDate"  //5
+             + " ,SUBSTRING_INDEX(tmp.LOT_NO,'-',-2) dLot"  //6
+             + " ,cb.LOT" //7 コンテナ番号
+             + " FROM"
+             + "  kyoei.t_shipment_inf si"
+             + "  LEFT JOIN kyoei.sc_juchu jc"
+             + "  ON si.JC_SEQ = jc.SEQ"
+             + "  LEFT JOIN kyoei.t_can_barcode cb"
+             + "  ON cb.SHIP_SEQ = si.SEQ"
+             + "  LEFT JOIN "
+             + "  ("
+             + "  SELECT"
+             + "  p.SHIP_SEQ"
+             + "  ,p.WEIGHT"
+             + "  ,p.LOT_NO "
+             + "  FROM kyoei.t_product p"
+             + "  WHERE p.SHIP_SEQ IN ({0})"
+             + "  UNION"
+             + "  SELECT"
+             + "  mp.SHIP_SEQ"
+             + "  ,mp.WEIGHT"
+             + "  ,mp.LOT_NO"
+             + "  FROM kyoei.t_m_product mp"
+             + "  WHERE mp.SHIP_SEQ IN ({0})"
+             + "  UNION"
+             + "  SELECT"
+             + "  tp.SHIP_SEQ"
+             + "  ,tp.WEIGHT"
+             + "  ,tp.LOT_NO"
+             + "  FROM kyoei.t_t_product tp"
+             + "  WHERE tp.SHIP_SEQ IN ({0})"
+             + "  ) tmp"
+             + "  ON tmp.SHIP_SEQ = si.SEQ"
+             + " WHERE"
+             + "   si.SEQ IN ({0})"
+             + " ORDER BY"
+             + "   jc.LINNO"
+             + "   ,IFNULL(jc.HINNMA,si.ITEM)"
+             + "  ,SUBSTRING_INDEX(tmp.LOT_NO,'-',1)"
+             + "  ,CAST(SUBSTRING_INDEX(tmp.LOT_NO,'-',-1) AS SIGNED);"
+                , shipSEQ);
+            return s;
+        }
+
+        private string GetJuchuInf(string shipSEQ)
+        {
+            string s = string.Format(
+                "SELECT"
+                 + " si.SEQ"  //0
+                 + " ,CONCAT(" 
+                 + " SUBSTRING(jc.NOKDT,1,4)"  
+                 + " ,'/',SUBSTRING(jc.NOKDT,5,2)"  
+                 + " ,'/',SUBSTRING(jc.NOKDT,7,2)"  
+                 + " )"                          // 1
+                 + " ,jc.TOKCD"                  // 2
+                 + " ,jc.TANNM "                 // 3
+                 + " ,RIGHT(jc.TANCD,2)"         // 4
+                 + " ,CONCAT(jc.JDNNO,' (1/1)')" // 5
+                 + " , jc.NHSZP"                 // 6
+                 + " , jc.NHSAD"                 // 7
+                 + " , jc.NHSNM"                 // 8
+                 + " , jc.NHSTL"                 // 9
+                 + " , jc.SOUCD"                 //10
+                 + " FROM kyoei.t_shipment_inf si"
+                 + " LEFT JOIN kyoei.sc_juchu jc"
+                 + " ON si.JDNNO = jc.JDNNO AND si.LINNO = jc.LINNO"
+                 + " WHERE si.SEQ = {0};"
+                 , shipSEQ
+                );
+            return s;
+        }
+        private void prtLotList()
+        {
+            string sMsg = string.Empty;
+            int ir = -1;
+            #region 印刷まえ確認
+            if (dgv0.SelectedRows.Count <= 0)
+            {
+                sMsg = "出荷情報を選択して下さい。";
+            }
+            
+            if (sMsg.Length > 0)
+            {
+                string[] sSnd = { sMsg, "false" };
+                string[] sRcv = promag_frm.F05_YN.ShowMiniForm(sSnd);
+                return;
+            }
+            #endregion  
+            
+            #region 作業フォルダの作成
+            string path = @"c:\tetra";
+            fn.CrtDir(path);
+            string flnm = @"C:\tetra\kyoei_stamp.png";
+            string fn0 = DEF_CON.FLSvrSub + @"template\kyoei_stamp.png";
+            if (!System.IO.File.Exists(flnm) ||
+                File.GetLastWriteTime(flnm) < File.GetLastWriteTime(fn0))
+            {
+                File.Copy(fn0, flnm, true);
+            }
+            #endregion
+            #region 印刷の確認
+            sMsg = "ロット明細書を印刷しますか？";
+            string[] sendText = { sMsg };
+            string[] reT = promag_frm.F05_YN.ShowMiniForm(sendText);
+
+            if (reT[0].Length == 0) return;
+            #endregion
+
+
+            for (int i = 0; i < dgv0.Rows.Count; i++)
+            {
+                if (dgv0.Rows[i].Selected)
+                {
+                    ir = i;
+                    #region 変数の定義
+                    string sNouhinbi = string.Empty; // 納品日
+                    string sTokCD = string.Empty; // お得意様コード
+                    string sTanTo = string.Empty; // 担当
+                    string sDenNo = string.Empty; // 伝票番号
+                    string sZIPCD = string.Empty;
+                    string sNOHAD = string.Empty;
+                    string sNOUNM = string.Empty;
+                    string sNOUTL = string.Empty;
+
+                    string ShipSeq = dgv0.Rows[i].Cells[0].Value.ToString(); // SHIP_SEQ
+                    string sQty = dgv0.Rows[i].Cells[6].Value.ToString(); // 数量
+                    #endregion
+
+                    kyDb con = new kyDb();
+                    #region 伝票情報を取得
+                    string tmpDb = con.GetData(GetJuchuInf(ShipSeq), DEF_CON.Constr());
+                    sNouhinbi = con.ds.Tables[0].Rows[0][1].ToString();
+                    sTokCD = con.ds.Tables[0].Rows[0][2].ToString();
+                    string sSOUCD = sNOUTL = con.ds.Tables[0].Rows[0][10].ToString(); // 20201216追記
+                    sTanTo = con.ds.Tables[0].Rows[0][3].ToString();
+                    sTanTo += "                    ";
+                    sTanTo = sTanTo.Substring(0, 18);
+                    sTanTo += sSOUCD.Substring(sSOUCD.Length - 2); // 20201216追記
+                    //sTanTo += con.ds.Tables[0].Rows[0][4].ToString();
+                    sDenNo = con.ds.Tables[0].Rows[0][5].ToString();
+                    sZIPCD = con.ds.Tables[0].Rows[0][6].ToString();
+                    sNOHAD = con.ds.Tables[0].Rows[0][7].ToString();
+                    sNOUNM = con.ds.Tables[0].Rows[0][8].ToString();
+                    sNOUTL = con.ds.Tables[0].Rows[0][9].ToString();
+                    #endregion
+
+                    // 同一受注番号のものがあるか探す。
+                    tmpDb = con.GetData(GetSEQ(sDenNo.Substring(0,sDenNo.Length-6)), DEF_CON.Constr());
+                    string sShipSeqs = string.Empty;
+                    for(int r = 0;r < con.ds.Tables[0].Rows.Count; r++)
+                    {
+                        sShipSeqs += "," + con.ds.Tables[0].Rows[r][0].ToString();
+                    }
+                    sShipSeqs = sShipSeqs.Substring(1);
+
+                    tmpDb = con.GetData(LotList(sShipSeqs), DEF_CON.Constr());
+                    object[,] v = new object[con.ds.Tables[0].Rows.Count, con.ds.Tables[0].Columns.Count];
+                    for(int row = 0;row < v.GetLength(0); row++)
+                    {
+                        for (int col = 0; col < v.GetLength(1); col++)
+                        {
+                            //if(con.ds.Tables[0].Rows[row][col].ToString())
+                            v[row, col] = con.ds.Tables[0].Rows[row][col].ToString();
+                        }
+                    }
+
+                    System.Diagnostics.Process p;
+                    #region ドキュメントを作成 d.ToString("yyyyMMddHHmmss"))
+                    string sCrtDate = DateTime.Now.ToString("yyMMddHHmmss");
+                    iTextSharp.text.Document doc =
+                        new iTextSharp.text.Document(PageSize.A4, 12f, 14f, 14f, 12f);
+                    //(ページサイズ, 左, 右, 上, 下マージン);
+                    //ファイルの出力先を設定
+                    string newFile = @"C:\tetra\dlv_nt_LotTbl";
+                    newFile += ShipSeq + sCrtDate + ".pdf";
+                    #endregion
+                    #region ファイル出力用のストリームを取得
+                    try
+                    {
+                        PdfWriter.GetInstance(doc, new FileStream(newFile, FileMode.Create));
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Windows.Forms.MessageBox.Show(ex.Message, "エラー");
+                        MessageBox.Show("誰かがロット明細用ファイルを使用中です。閉じてから作業して下さい。");
+                        return;
+                    }
+                    #endregion
+                    #region 本文用のフォント(MS P明朝) 設定
+                    iTextSharp.text.Font fnt16 = new iTextSharp.text.Font(BaseFont.CreateFont
+                       (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 16, iTextSharp.text.Font.NORMAL);
+                    iTextSharp.text.Font fnt12 = new iTextSharp.text.Font(BaseFont.CreateFont
+                       (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 12, iTextSharp.text.Font.NORMAL);
+                    iTextSharp.text.Font fnt10 = new iTextSharp.text.Font(BaseFont.CreateFont
+                       (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 10, iTextSharp.text.Font.NORMAL);
+                    iTextSharp.text.Font fnt11 = new iTextSharp.text.Font(BaseFont.CreateFont
+                       (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 11, iTextSharp.text.Font.NORMAL);
+                    iTextSharp.text.Font fnt9 = new iTextSharp.text.Font(BaseFont.CreateFont
+                       (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 9, iTextSharp.text.Font.NORMAL);
+                    #endregion
+                    doc.Open();
+                    try
+                    {
+                        #region 先頭行 = 「納品書」　18f
+                        float[] headerwidth = new float[] { 0.3f, 0.4f, 0.3f };
+                        PdfPCell cell;
+                        //3列からなるテーブルを作成
+                        PdfPTable tbl = new PdfPTable(headerwidth);
+                        //テーブル全体の幅（パーセンテージ）
+                        tbl.WidthPercentage = 100;
+                        tbl.HorizontalAlignment = Element.ALIGN_CENTER;
+                        tbl.DefaultCell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                        //テーブルの余白
+                        tbl.DefaultCell.Padding = 2;
+                        #region ヘッダ　= タイトル設定
+                        string sTitle = "ロ ッ ト 明 細";
+                        
+                        #endregion
+                        // テーブルの中身
+                        string[] sHeader = new string[] { "", "", sTitle };
+                        //テーブルのセル間の間隔
+                        //tbl.Spacing = 0;
+                        //テーブルの線の色（RGB:黒）
+                        tbl.DefaultCell.BorderColor = BaseColor.BLACK;
+                        //タイトルのセルを追加
+                        for (int j = 0; j < sHeader.GetLength(0); j++)
+                        {
+                            cell = new PdfPCell(new Phrase(sHeader[j], fnt16));
+                            cell.BorderColor = BaseColor.WHITE;
+                            cell.FixedHeight = 20f;                         // <--高さ
+                            cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                            cell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                            if (j == 2) cell.HorizontalAlignment = Element.ALIGN_RIGHT;
+                            tbl.AddCell(cell);
+                        }
+                        doc.Add(tbl);
+                        #endregion 先頭行 10f
+
+                        #region 最初の表
+                        //4列からなるテーブルを作成
+                        headerwidth = new float[] { 0.14f, 0.26f, 0.25f, 0.25f };
+                        PdfPTable tbl1 = new PdfPTable(headerwidth);
+                        //テーブル全体の幅（パーセンテージ）
+                        tbl1.WidthPercentage = 70;
+                        tbl1.HorizontalAlignment = Element.ALIGN_RIGHT;
+                        tbl1.DefaultCell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                        //テーブルの余白>> 設定済み tbl.DefaultCell.Padding = 2;
+                        //string sDen = v[0, 5].ToString();
+                        //sDen += string.Format(" ({0}/{1})", (ir + 1).ToString(), iDenCount.ToString());
+                        string[] item = new string[] { "年月日", "お得意様コード", "担当", "伝票番号" };
+                        string[] item2 = new string[] { sNouhinbi, sTokCD, sTanTo, sDenNo };
+                        float fHi = 16f;
+
+                        #region テーブル1行目
+                        for (int j = 0; j < item.Length; j++)
+                        {
+                            //セルの追加
+                            cell = new PdfPCell(new Phrase(item[j], fnt9));
+                            // 全体の線の太さの設定
+                            cell.BorderWidthTop = 0.8f;
+                            cell.BorderWidthLeft = 0f;
+                            cell.BorderWidthRight = 0.25f;
+                            cell.BorderWidthBottom = 0.25f;
+                            // 最初のセル
+                            if (j == 0) cell.BorderWidthLeft = 0.8f;
+                            // 最後のセル
+                            if (j == item.Length - 1) cell.BorderWidthRight = 0.8f;
+                            cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                            cell.FixedHeight = fHi; // <--これ
+                            cell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                            tbl1.AddCell(cell);
+                        }
+                        //テーブルを追加
+                        doc.Add(tbl1);
+                        #endregion
+                        #region テーブル2行目
+                        PdfPTable tbl2 = new PdfPTable(headerwidth);
+                        tbl2.WidthPercentage = 70;
+                        tbl2.HorizontalAlignment = Element.ALIGN_RIGHT;
+                        tbl2.DefaultCell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                        for (int j = 0; j < item.Length; j++)
+                        {
+                            //セルの追加
+                            cell = new PdfPCell(new Phrase(item2[j], fnt9));
+                            // 全体の線の太さの設定
+                            cell.BorderWidthTop = 0f;
+                            cell.BorderWidthLeft = 0f;
+                            cell.BorderWidthRight = 0.25f;
+                            cell.BorderWidthBottom = 0.8f;
+                            // 最初のセル
+                            if (j == 0) cell.BorderWidthLeft = 0.8f;
+                            // 最後のセル
+                            if (j == item.Length - 1) cell.BorderWidthRight = 0.8f;
+                            cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                            cell.FixedHeight = fHi; // <--これ
+                            cell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                            tbl2.AddCell(cell);
+                        }
+                        //テーブルを追加
+                        doc.Add(tbl2);
+                        #endregion
+
+                        #endregion 終 最初の表
+
+                        #region 宛先等
+                        headerwidth = new float[] { 0.4f };
+                        PdfPTable tbl3 = new PdfPTable(headerwidth);
+                        item = new string[] { sZIPCD, sNOHAD, sNOUNM + " 様", sNOUTL };
+                        tbl3.WidthPercentage = 35;
+
+                        tbl3.DefaultCell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                        fHi = 15f;
+                        tbl3.HorizontalAlignment = Element.ALIGN_LEFT;
+                        tbl3.DefaultCell.Padding = 0;
+
+                        for (int irow = 0; irow < item.GetLength(0); irow++)
+                        {
+                            if (irow == 2)
+                            {
+                                cell = new PdfPCell(new Phrase(item[irow], fnt12));
+                                cell.FixedHeight = 34f;
+                            }
+                            else
+                            {
+                                cell = new PdfPCell(new Phrase(item[irow], fnt10));
+                                cell.FixedHeight = 14f; // <--これ
+                            }
+
+                            cell.BorderWidth = 0f;
+                            cell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                            cell.HorizontalAlignment = Element.ALIGN_LEFT;
+                            tbl3.AddCell(cell);
+                        }
+                        doc.Add(tbl3);
+                        #endregion
+
+                        #region ロゴを追加
+                        if (sTokCD != "0000014101601") // 髙安の時は表示しない
+                        {
+                            iTextSharp.text.Image image2
+                                = iTextSharp.text.Image.GetInstance(new Uri(@"C:\tetra\kyoei_stamp.png"));
+                            image2.ScalePercent(25.0f / 100.0f * 100f);
+                            image2.SetAbsolutePosition(440f, 715f); // 横 縦
+                            doc.Add(image2);
+                        }
+                        #endregion
+
+                        #region メイン-ヘッダ行
+                        headerwidth = new float[] { 0.5f, 0.125f, 0.084f, 0.125f, 0.166f };
+                        item = new string[] { "品　名　　・　　規　格　　・　　個数", "数　量", "日 付", "ロ ッ ト №", "充 填 ロ ッ ト №" };
+                        
+                        PdfPTable tbl4 = new PdfPTable(headerwidth);
+
+                        tbl4.WidthPercentage = 100;
+                        fHi = 15f;
+
+                        #region メイン-ヘッダ行書き込み
+                        for (int j = 0; j < item.Length; j++)
+                        {
+                            //セルの追加
+                            cell = new PdfPCell(new Phrase(item[j], fnt9));
+                            // 全体の線の太さの設定
+                            cell.BorderWidthTop = 0.8f;
+                            cell.BorderWidthLeft = 0f;
+                            cell.BorderWidthRight = 0.25f;
+                            cell.BorderWidthBottom = 0.8f;
+                            // 最初のセル
+                            if (j == 0) cell.BorderWidthLeft = 0.8f;
+                            // 最後のセル
+                            if (j == item.Length - 1) cell.BorderWidthRight = 0.8f;
+                            cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                            cell.FixedHeight = fHi; // <--これ
+                            cell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                            tbl4.AddCell(cell);
+                        }
+                        //テーブルを追加
+                        doc.Add(tbl4);
+                        #endregion
+                        #endregion
+
+                        #region 表中身
+                        /*
+                        0 shipSEQ
+                        1 品名
+                        2 出荷数量
+                        3 Lot数量
+                        4 Lot_No
+                        5 生産日
+                        6 Lot枝番
+                        7 コンテナ番号
+                         */
+                        //headerwidth = new float[] { 0.35f, 0.2f, 0.15f, 0.15f, 0.15f };
+                        PdfPTable tbl5 = new PdfPTable(headerwidth);
+                        tbl5.WidthPercentage = 100;
+                        fHi = 20.5f;
+                        // ir = iDencount
+                        
+                        for (int irow = 0; irow < 32; irow++ )
+                        {
+                            string s1 = string.Empty; // 全体出荷数量
+                            string s2 = string.Empty; // Lot重量
+                            string s3 = string.Empty; // 品名等   --------------------->> 2021/1/21 元々forの上にあった。
+                            string sHIDUKE = string.Empty;
+                            string sBRANCH = string.Empty;
+                            string sCONTENA = string.Empty;
+                            if (irow < v.GetLength(0))
+                            {
+                                s1 = v[irow, 2].ToString(); // 全体出荷数量
+                                if (s1.IndexOf(".") > 0) s1 = s1.Substring(0, s1.IndexOf(".") );
+                                if (s1.Length > 0) s1 = string.Format("{0:#,0.00}", int.Parse(s1));
+                                s2 = v[irow, 3].ToString(); // Lot重量
+                                if (s2.IndexOf(".") > 0) s2 = s2.Substring(0, s2.IndexOf("."));
+                                if (s2.Length > 0) s2 = string.Format("{0:#,0.00}", int.Parse(s2));
+                                
+                                s3 = v[irow, 1].ToString();
+                                s3 += "                                                            ";
+                                s3 = s3.Substring(0, 60 - s1.Length);
+                                s3 += s1;
+                                if (irow > 0)
+                                {
+                                    if (v[irow, 1].ToString() == v[irow - 1, 1].ToString()
+                                        && v[irow, 2].ToString() == v[irow - 1, 2].ToString()) s3 = "";
+                                    if (v[irow, 1].ToString().Length == 0) s3 = "";
+                                }
+                                
+                                sHIDUKE = v[irow, 5].ToString();
+                                sBRANCH = v[irow, 6].ToString();
+                                sCONTENA = v[irow, 7].ToString();
+                            }
+
+                            item = new string[] { s3, s2, sHIDUKE, sBRANCH, sCONTENA };
+                            
+                            #region テーブル1行目
+                            for (int j = 0; j < item.Length; j++)
+                            {
+                                //セルの追加
+                                if (j == 1)
+                                {
+                                    cell = new PdfPCell(new Phrase(item[j], fnt9));
+                                    cell.HorizontalAlignment = Element.ALIGN_RIGHT;
+                                }
+                                else
+                                {
+                                    cell = new PdfPCell(new Phrase(item[j], fnt9));
+                                    cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                                }
+                                cell.FixedHeight = fHi; // <--これ
+                                                        // 全体の線の太さの設定
+                                cell.BorderWidthTop = 0f;
+                                cell.BorderWidthLeft = 0f;
+                                cell.BorderWidthRight = 0.25f;
+                                cell.BorderWidthBottom = 0.8f;
+                                if (irow == 0) cell.BorderWidthTop = 0f;
+                                // 最初のセル
+                                if (j == 0) cell.BorderWidthLeft = 0.8f;
+                                // 最後のセル
+                                if (j == item.Length - 1) cell.BorderWidthRight = 0.8f;
+
+
+                                cell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                                tbl5.AddCell(cell);
+                            }
+                        }
+                        doc.Add(tbl5);
+                        #endregion
+                        #endregion
+
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine("---\r\n" + ex.Message + "\r\n" + ex.StackTrace);
+                        System.Windows.Forms.MessageBox.Show(ex.Message, "エラー");
+                    }
+                    doc.Close();
+                    p = System.Diagnostics.Process.Start(newFile);
+                }
+            }
+
+            if (ir < dgv0.Rows.Count)
+            {
+                dgv0.Rows[ir].Selected = true;
+                dgv0.FirstDisplayedScrollingRowIndex = ir;
+            }
+        }
     }
 }

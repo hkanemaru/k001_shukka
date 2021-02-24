@@ -82,7 +82,7 @@ namespace k001_shukka
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message, "エラー");
-                closing();
+                //closing();
             }
         }
 

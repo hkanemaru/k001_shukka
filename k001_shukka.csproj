@@ -13,7 +13,7 @@
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
     <IsWebBootstrapper>false</IsWebBootstrapper>
-    <PublishUrl>\\10.100.10.24\store\klogi\</PublishUrl>
+    <PublishUrl>\\10.100.10.20\tmp\k001_shukka\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Unc</InstallFrom>
     <UpdateEnabled>true</UpdateEnabled>
@@ -25,7 +25,7 @@
     <MapFileExtensions>true</MapFileExtensions>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>publish.htm</WebPage>
-    <ApplicationRevision>18</ApplicationRevision>
+    <ApplicationRevision>55</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -69,19 +69,29 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="BouncyCastle.Crypto, Version=1.8.6.0, Culture=neutral, PublicKeyToken=0e99375e54769942">
+      <HintPath>packages\BouncyCastle.1.8.6.1\lib\BouncyCastle.Crypto.dll</HintPath>
+    </Reference>
     <Reference Include="ClosedXML, Version=0.95.3.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>packages\ClosedXML.0.95.3\lib\net46\ClosedXML.dll</HintPath>
     </Reference>
-    <Reference Include="DocumentFormat.OpenXml, Version=2.7.2.0, Culture=neutral, PublicKeyToken=8fb06cb64d019a17, processorArchitecture=MSIL">
-      <HintPath>..\packages\DocumentFormat.OpenXml.2.7.2\lib\net46\DocumentFormat.OpenXml.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="DocumentFormat.OpenXml, Version=2.11.3.0, Culture=neutral, PublicKeyToken=8fb06cb64d019a17, processorArchitecture=MSIL">
+      <HintPath>packages\DocumentFormat.OpenXml.2.11.3\lib\net46\DocumentFormat.OpenXml.dll</HintPath>
     </Reference>
-    <Reference Include="ExcelNumberFormat, Version=1.0.10.0, Culture=neutral, PublicKeyToken=23c6f5d73be07eca, processorArchitecture=MSIL">
-      <HintPath>..\packages\ExcelNumberFormat.1.0.10\lib\net20\ExcelNumberFormat.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="ExcelNumberFormat, Version=1.1.0.0, Culture=neutral, PublicKeyToken=23c6f5d73be07eca, processorArchitecture=MSIL">
+      <HintPath>packages\ExcelNumberFormat.1.1.0\lib\net20\ExcelNumberFormat.dll</HintPath>
+    </Reference>
+    <Reference Include="itextsharp, Version=5.5.13.2, Culture=neutral, PublicKeyToken=8354ae6d2174ddca, processorArchitecture=MSIL">
+      <HintPath>packages\iTextSharp.5.5.13.2\lib\itextsharp.dll</HintPath>
     </Reference>
     <Reference Include="mydb">
       <HintPath>D:\document\Visual Studio 2015\Projects\mydb\mydb\bin\Debug\mydb.dll</HintPath>
+    </Reference>
+    <Reference Include="Oracle.ManagedDataAccess, Version=4.122.19.1, Culture=neutral, PublicKeyToken=89b483f429c47342, processorArchitecture=MSIL">
+      <HintPath>packages\Oracle.ManagedDataAccess.19.10.0\lib\net40\Oracle.ManagedDataAccess.dll</HintPath>
+    </Reference>
+    <Reference Include="Pao.BarCode">
+      <HintPath>D:\document\VS_CODE\kyoei32\kyoei\bin\Debug\Pao.BarCode.dll</HintPath>
     </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="promag_frm">
@@ -89,13 +99,13 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.IO.FileSystem.Primitives, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.IO.FileSystem.Primitives.4.0.1\lib\net46\System.IO.FileSystem.Primitives.dll</HintPath>
+    <Reference Include="System.IO.FileSystem.Primitives, Version=4.0.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>packages\System.IO.FileSystem.Primitives.4.3.0\lib\net46\System.IO.FileSystem.Primitives.dll</HintPath>
       <Private>True</Private>
       <Private>True</Private>
     </Reference>
-    <Reference Include="System.IO.Packaging, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.IO.Packaging.4.0.0\lib\net46\System.IO.Packaging.dll</HintPath>
+    <Reference Include="System.IO.Packaging, Version=5.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>packages\System.IO.Packaging.5.0.0\lib\net46\System.IO.Packaging.dll</HintPath>
     </Reference>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -109,6 +119,7 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="clsBC.cs" />
     <Compile Include="DEF_CON.cs" />
     <Compile Include="F00.cs">
       <SubType>Form</SubType>
@@ -128,6 +139,42 @@
     <Compile Include="F02_EditOrder.Designer.cs">
       <DependentUpon>F02_EditOrder.cs</DependentUpon>
     </Compile>
+    <Compile Include="F03_SELECT_GRADE.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="F03_SELECT_GRADE.Designer.cs">
+      <DependentUpon>F03_SELECT_GRADE.cs</DependentUpon>
+    </Compile>
+    <Compile Include="F04_ChkShipment.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="F04_ChkShipment.Designer.cs">
+      <DependentUpon>F04_ChkShipment.cs</DependentUpon>
+    </Compile>
+    <Compile Include="F05_Dialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="F05_Dialog.Designer.cs">
+      <DependentUpon>F05_Dialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="F06_ChkLot.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="F06_ChkLot.Designer.cs">
+      <DependentUpon>F06_ChkLot.cs</DependentUpon>
+    </Compile>
+    <Compile Include="F07_Chk_Lot_Shipped.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="F07_Chk_Lot_Shipped.Designer.cs">
+      <DependentUpon>F07_Chk_Lot_Shipped.cs</DependentUpon>
+    </Compile>
+    <Compile Include="F08_ChkShipment.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="F08_ChkShipment.Designer.cs">
+      <DependentUpon>F08_ChkShipment.cs</DependentUpon>
+    </Compile>
     <Compile Include="fn.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -140,6 +187,24 @@
     </EmbeddedResource>
     <EmbeddedResource Include="F02_EditOrder.resx">
       <DependentUpon>F02_EditOrder.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="F03_SELECT_GRADE.resx">
+      <DependentUpon>F03_SELECT_GRADE.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="F04_ChkShipment.resx">
+      <DependentUpon>F04_ChkShipment.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="F05_Dialog.resx">
+      <DependentUpon>F05_Dialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="F06_ChkLot.resx">
+      <DependentUpon>F06_ChkLot.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="F07_Chk_Lot_Shipped.resx">
+      <DependentUpon>F07_Chk_Lot_Shipped.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="F08_ChkShipment.resx">
+      <DependentUpon>F08_ChkShipment.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -188,6 +253,31 @@
     <None Include="Resources\excel.png" />
     <None Include="Resources\dispCng.png" />
     <Content Include="BA.ico" />
+    <None Include="Resources\unlock.png" />
+    <None Include="Resources\del_red.png" />
+    <None Include="Resources\print.png" />
+    <None Include="Resources\print1.png" />
+    <None Include="Resources\Verification.png" />
+    <None Include="Resources\delivery_note.png" />
+    <None Include="Resources\add.png" />
+    <None Include="Resources\list3.png" />
+    <None Include="Resources\dlvry_note.png" />
+    <None Include="Resources\dlvry_note1.png" />
+    <None Include="Resources\ShipChk.png" />
+    <None Include="Resources\container.png" />
+    <None Include="Resources\reflesh.png" />
+    <None Include="Resources\csr_previous2.png" />
+    <None Include="Resources\csr_forward2.png" />
+    <None Include="Resources\SC_IN.png" />
+    <None Include="Resources\exclamn.png" />
+    <None Include="Resources\print_vote.png" />
+    <None Include="Resources\print_list.png" />
+    <None Include="Resources\compa.png" />
+    <None Include="Resources\search.png" />
+    <None Include="Resources\Revive.png" />
+    <None Include="Resources\stamp.png" />
+    <None Include="Resources\souko[1].png" />
+    <None Include="Resources\ERRFILE.png" />
     <Content Include="tetra.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

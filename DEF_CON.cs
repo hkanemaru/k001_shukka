@@ -3,17 +3,32 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using iTextSharp.text.pdf;
+using iTextSharp.text;
+using System.IO;
 
 namespace k001_shukka
 {
     class DEF_CON
     {
-        public static string verString = "Ver.0.01 2020/10/17";
-        public static string prjName = "MRBC";
+        public static string verString = "Ver.0.24 21/02/24";
+        public static string prjName = "gyom";
         public static string sHistry =
 @"
-Ver.0.01 2020/10/17 リリース
-　　　　MRFからMRBCへの入庫登録
+Ver.0.24 21/02/24 ステータス登録方法変更
+Ver.0.23 21/02/19   ステータスロジック変更
+Ver.0.21 2021/02/08 出荷票特殊対応
+Ver.0.20 2021/02/02 エラー結果表示
+Ver.0.17 2021/02/02 受領書確認、売上番号登録機能付与
+Ver.0.16 2021/01/25 Lot蘇り対応
+Ver.0.15 2021/01/21 納品書1行の時におかしいのを修正
+Ver.0.12 2021/01/19 出荷票でひゅーびす対応(海外向け）
+Ver.0.11 2021/12/23 出荷票で伝票番号のない未連携のロット印刷時に受注伝票情報を見ないで印刷するよう変更
+Ver.0.10 2020/12/23 納品書対応
+Ver.0.09 2020/12/23 サンビックの特殊出荷票に対応
+Ver.0.08 2020/12/22 納品書得意先宛名サポート
+Ver.0.01 2020/12/03 リリース
+カクテル連携出荷業務
 ";
 
         /*
@@ -33,6 +48,13 @@ Ver.0.01 2020/10/17 リリース
             if (usr.iDB == 2) s = "server=localhost;user id=kyoei;Password=password;persist security info=True;database=kyoei;Allow Zero Datetime=true";
             return s;
         }
+
+        public static string DbSvrBk = @"\\10.100.10.12\";
+
+        public static string FLSvrSub = @"\\10.100.10.20\share\tetra\";
+
+        public static string appInf = @"C:\tetra\appInf.ini";
+
 
         public static int[] BLUE = { 0, 98, 150 };
         public static int[] LIGHT_BLUE = { 220, 240, 255 };
