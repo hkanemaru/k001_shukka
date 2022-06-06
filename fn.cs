@@ -1,19 +1,75 @@
 ﻿using System;
-using System.Windows.Forms;
-using System.IO;
-using System.Text.RegularExpressions;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using System.Collections;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.IO;
 using System.Reflection;
+using System.Text.RegularExpressions;
+using System.Windows.Forms;
+// PresentationCore.dll
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace k001_shukka
 {
     class fn
     {
+        public static void CrtUsrIni(string sID, string sPara)
+        {
+            if (!Directory.Exists(DEF_CON.usr_dir))
+            {
+                Directory.CreateDirectory(DEF_CON.usr_dir);
+            }
+            string scont = sID;
+            scont += "," + usr.id;
+            scont += "," + usr.iDB.ToString();
+            scont += "," + DateTime.Now.ToString();
+            scont += "," + sPara;
+            System.IO.StreamWriter sw1 = new System.IO.StreamWriter(
+            DEF_CON.usr_dir + DEF_CON.usr_fl,
+            false,
+            System.Text.Encoding.GetEncoding("shift_jis"));
+
+            //LogFileに書き込む
+            sw1.Write(scont);
+            //閉じる
+            sw1.Close();
+        }
+        public static string frmLTxt(string sT)
+        {
+            string s = sT;
+            //s += " " + "MRBC";
+
+            s += " " + DEF_CON.GetVersion();
+            return s;
+        }
+
+        public static string frmRTxt()
+        {
+            string s = string.Empty;
+            if (usr.iDB == 1) s = "TDB: ";
+            s += usr.name;
+            return s;
+        }
+
+
+        static System.Text.Encoding sjisEnc = System.Text.Encoding.GetEncoding("Shift_JIS");
+
+        public static bool isHankaku(string str)
+        {
+            int num = sjisEnc.GetByteCount(str);
+            return num == str.Length;
+        }
+
+        public static bool isHankakuEisu(string str)
+        {
+            if (string.IsNullOrEmpty(str)) return false;
+
+            return System.Text.RegularExpressions.Regex.IsMatch(
+                str, "^[a-zA-Z0-9!-/:-@¥[-`{-~]+$");
+        }
+
         /// <summary>
         /// i= 1 false 0 true
         /// </summary>
@@ -72,7 +128,7 @@ namespace k001_shukka
         {
             string s = sT;
             //s += " " + "MRBC";
-            s += " " + DEF_CON.verString;
+            s += " " + DEF_CON.GetVersion();
             return s;
         }
 
@@ -539,6 +595,7 @@ namespace k001_shukka
             return true;
         }
 
+     
         public static Control[] GetAllControls(Control top)
         {
             ArrayList buf = new ArrayList();
@@ -555,7 +612,7 @@ namespace k001_shukka
         /// <param name="sKBN">機能制限の種類</param>
         /// <param name="sid">=usr.id</param>
         /// <returns></returns>
-        public static Boolean EnabelFunction(String sKBN, String sid)
+        public static Boolean EnableFunction(String sKBN, String sid)
         {
             if (usr.author == 9) return true;
             #region 環境対策課　許認可 KYOKA
@@ -638,6 +695,40 @@ namespace k001_shukka
                 }
             }
             #endregion
+
+            #region ■■■■■　小山出荷承認　GYOMU_PERMIT HINKAN_PERMIT SHIP_PERMIT
+            if (sKBN == "SHIP_PERMIT") 
+            {
+                switch (sid)
+                {                           //敬称略
+                    case "k0119":  // 鈴木
+                    case "k0214":  // 八文字 
+                        return true;
+                }
+            }
+            if (sKBN == "GYOMU_PERMIT")
+            {
+                switch (sid)
+                {                           //敬称略
+                    case "k0134":  // 中山
+                    case "k0194":  //赤坂
+                    case "k0214":  // 八文字 
+                        return true;
+                }
+            }
+            if (sKBN == "HINKAN_PERMIT")
+            {
+                switch (sid)
+                {
+                    case "k0119":  // 鈴木　//敬称略
+                    case "k0331":  // 吉原
+                    case "k0926":  // 関
+                    case "k0214":  // 八文字 
+                        return true;
+                }
+            }
+            #endregion
+
 
             #region mrf
             if (sKBN == "mrf")

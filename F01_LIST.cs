@@ -16,9 +16,9 @@ namespace k001_shukka
     {
         #region フォーム変数
         private bool bClose = true;
-        private string[] argVals; // 親フォームから受け取る引数
+        private readonly string[] argVals; // 親フォームから受け取る引数
         public string[] ReturnValue;            // 親フォームに返す戻り値
-        private bool bPHide = true;  // 親フォームを隠す = True
+        private readonly bool bPHide = true;  // 親フォームを隠す = True
         DateTime loadTime; // formloadの時間
         ToolTip ToolTip1;
         private string SDate = string.Empty;
@@ -50,7 +50,7 @@ namespace k001_shukka
             // タイトルバー表示設定
             this.Text = string.Format("【{0}】 {1}"
                 , this.Name
-                , DEF_CON.prjName + " " + DEF_CON.verString);
+                , DEF_CON.prjName + " " + DEF_CON.GetVersion());
             #endregion
             dgv0.DataSource = bs0;
         }
@@ -82,8 +82,8 @@ namespace k001_shukka
             lblRCaption.Top = lblCaption.Top;
             string s = string.Empty;
 
-            SDate = DateTime.Today.AddMonths(-3).ToShortDateString();
-            EDate = DateTime.Today.AddMonths(3).ToShortDateString();
+            SDate = DateTime.Today.AddMonths(-1).ToShortDateString();
+            EDate = DateTime.Today.AddMonths(2).ToShortDateString();
 
             string sTerm = string.Empty;
             double Interval = (DateTime.Parse(EDate) - DateTime.Parse(SDate)).TotalDays;
@@ -92,9 +92,21 @@ namespace k001_shukka
             lblCaption.Text += " " + sTerm;
             fn.EnableDoubleBuffering(dgv0);
 
+            //if (usr.author > 8)
+            //{
+            //    button11.Visible = true;
+            //    button12.Visible = true;
+            //} 
+            //else
+            //{
+            //    button11.Visible = false;
+            //    button12.Visible = false;
+            //}
+
             CrtShipInf();
 
             GetData(dgv0, bs0, GetOrder());
+            CheckedChanged();
             arrageTextBW(dgv0);
         }
 
@@ -127,6 +139,9 @@ namespace k001_shukka
             ToolTip1.SetToolTip(button8, "売上番号登録");
             ToolTip1.SetToolTip(button9, "受領書確認");
             ToolTip1.SetToolTip(button10, "エラー表示");
+            ToolTip1.SetToolTip(button11, "検査結果表示");
+            ToolTip1.SetToolTip(button12, "承認依頼");
+            ToolTip1.SetToolTip(button13, "メモ追加");
         }
         #region CLOSE処理
         // 3) btnClose
@@ -213,8 +228,8 @@ namespace k001_shukka
         {
             string sMN = string.Empty;
             string sTerm = string.Empty;
-            sTerm = string.Format("BETWEEN '{0}' AND '{1}'", SDate, EDate);
-            sTerm = string.Format("BETWEEN '{0}' AND '{1}'", SDate.Substring(2), EDate.Substring(2));
+            sTerm = string.Format("BETWEEN '{0}' AND '{1}'", SDate.Replace("/",""), EDate.Replace("/", ""));
+            //sTerm = string.Format("BETWEEN '{0}' AND '{1}'", SDate.Substring(2), EDate.Substring(2));
             string s = string.Empty;
             string s1 = @"[0-9]{8}";
             s = string.Format(
@@ -224,26 +239,35 @@ namespace k001_shukka
                  + " , si.LINNO 行番号"                                             // 2
                  + " , CASE"
                  + "   WHEN jc.SYUYTIDT IS NOT NULL"
-                 + "   THEN CONCAT(SUBSTRING(jc.SYUYTIDT,3,2),'/',SUBSTRING(jc.SYUYTIDT,5,2)"
-                 + "    ,'/',SUBSTRING(jc.SYUYTIDT,7,2))"
+                 //+ "   THEN CONCAT(SUBSTRING(jc.SYUYTIDT,3,2),'/',SUBSTRING(jc.SYUYTIDT,5,2)"
+                 //+ "    ,'/',SUBSTRING(jc.SYUYTIDT,7,2))"
+                 + "   THEN DATE_FORMAT(jc.SYUYTIDT,  '%y/%m/%d')"
                  + "   ELSE DATE_FORMAT(si.SHIP_DATE, '%y/%m/%d') END 出荷日"       // 3
+
+                 + " , CASE"
+                 + "   WHEN jc.NOKDT IS NOT NULL"
+                 + "   THEN DATE_FORMAT(jc.NOKDT,  '%y/%m/%d')"
+                 + "   ELSE DATE_FORMAT(si.DUE_DATE, '%y/%m/%d') END 納品日"       // 4
+
                  + " , CASE WHEN LOCATE('①',jc.LINCM) + LOCATE('②',jc.LINCM)"
                  + "    + LOCATE('③',jc.LINCM) + LOCATE('④',jc.LINCM)"
                  + "    + LOCATE('⑤',jc.LINCM) + LOCATE('⑥',jc.LINCM)"
                  + "    + LOCATE('⑦',jc.LINCM) + LOCATE('⑧',jc.LINCM)"
                  + "    > 0 THEN CONCAT(LEFT(jc.LINCM,1),IFNULL(jc.NHSNM, si.DESTINATION))"
-                 + "  ELSE IFNULL(jc.NHSNM, si.DESTINATION) END 出荷先"            // 4
-                 + " , IFNULL(jc.HINNMA, si.ITEM) 品名"                            // 5
-                 + " , IFNULL(CAST(jc.UODSU AS SIGNED),si.SHIPMENT_QUANTITY) 数量" // 6
+                 + "    WHEN jc.NHSNM != '' THEN jc.NHSNM"            
+                 + "    WHEN jc.TOKNM != '' THEN jc.TOKNM"
+                 + "    ELSE si.DESTINATION END 出荷先"                            // 5
+                 + " , IFNULL(jc.HINNMA, si.ITEM) 品名"                            // 6
+                 + " , IFNULL(CAST(jc.UODSU AS SIGNED),si.SHIPMENT_QUANTITY) 数量" // 6 7
                  + " , CASE "
-                 + "   WHEN si.DN_CHK_DATE IS NOT NULL" 
-                 + "     THEN '8完了'"
-                 + "   WHEN jcr.STATUS IS NOT NULL AND jcr.cm regexp '{1}' AND si.DN_CHK_DATE IS NULL" // 返却STATUS有 STATUS=1"
-                 + "     THEN '7受領確認待'"
                  + "   WHEN si.JC_SEQ IS NOT NULL AND si.JC_SEQ != jc.SEQ "           // GA_SEQ未設定
                  + "     THEN '0【要確認】受注データ更新' "
                  + "   WHEN jc.LGC_DEL = '1'"                                         // GA_SEQ未設定
                  + "     THEN '0【要確認】受注データ削除' "
+                 + "   WHEN si.DN_CHK_DATE IS NOT NULL" 
+                 + "     THEN '8完了'"
+                 + "   WHEN jcr.STATUS IS NOT NULL AND jcr.cm regexp '{1}' AND si.DN_CHK_DATE IS NULL" // 返却STATUS有 STATUS=1"
+                 + "     THEN '7受領確認待'"
                  + "   WHEN si.GA_SEQ IS NULL "                                       // GA_SEQ未設定
                  + "     THEN '1品目選定待' "
                  + "   WHEN si.GA_SEQ IS NOT NULL AND (IFNULL(CAST(jc.UODSU AS SIGNED),si.SHIPMENT_QUANTITY) != IFNULL(tmp.wt,0) OR IFNULL(tmp.wt,0) = 0)" // GA_SEQ設定済 選定LOT重量合計<>ship_inf重量
@@ -254,23 +278,27 @@ namespace k001_shukka
                  + "     THEN '4CSV出力待'"
                  + "   WHEN si.SC_OUT IS NOT NULL AND jcr.STATUS IS NULL"        // SC_OUTあり 返却STATUS無し"
                  + "     THEN '5SC連携待'"
-                 
                  + "   WHEN jcr.STATUS IS NOT NULL AND jcr.STATUS = '1' AND si.DN_CHK_DATE IS NULL" // 返却STATUS有 STATUS=1"
                  + "     THEN '6SC連携エラー'"
                  //+ "   WHEN tmp.CHK_DATE IS NOT NULL AND si.DN_CHK_DATE IS NULL" // 出荷確認有 受領未確認
                  //+ "     THEN '7受領確認待' "
                  + "   ELSE '9未設定' "
-                 + "   END STATUS"                                               // 7
+                 + "   END STATUS"                                               // 7 8
                  + " , CASE WHEN jcr.STATUS = '0' THEN '正'"
-                 + "   WHEN jcr.STATUS = '1' THEN 'E' ELSE '-' END 連"           // 8
+                 + "   WHEN jcr.STATUS = '1' THEN 'E' ELSE '-' END 連"           // 8 9
                  //+ " , CASE WHEN (LOCATE(':',jcr.CM) + LOCATE('：',jcr.CM)) > 0"
                  //+ "   THEN SUBSTRING_INDEX(jcr.CM, '：', -1) "
-                 //+ "   ELSE '' END 出荷番号"                                     // 9
-                 + " , jcr.CM 出荷番号"                                     // 9
-                 + " , CONCAT(w.SEI, w.MEI) 更新者"                              //10
-                 + " , DATE_FORMAT(si.UPD_DATE, '%y/%m/%d') 更新日 "             //11
-                 + " , jc.TOKCD"                                                 //12
-                 + " , jc.HINCD"                                                 //13
+                 //+ "   ELSE '' END 出荷番号"                                     // 9 10
+/*                 + " , jcr.CM 出荷番号"      */                               // 9  11
+                 + " , REPLACE(jcr.CM,'正常終了：','') 出荷番号"                 // 9  10
+                 + " , CASE WHEN si.BIKOU IS NULL THEN '' ELSE '*' END メ"          //10  111
+                 + " , CONCAT(w.SEI, w.MEI) 更新者"                              // 11 12
+                 + " , DATE_FORMAT(si.UPD_DATE, '%y/%m/%d') 更新日 "             //  12  13
+                 + " , jc.TOKCD"                                                 //  13  14
+                 + " , jc.HINCD"                                                 //  14  15
+                 + " , jc.SOUCD LOC_SEQ"                                              //   15  16 // excelで使用
+                 + " , si.BIKOU"                                                // 16  17
+                 + " , bc.LOT コLot"                                                // 17  18
                  + " FROM"
                  + "  kyoei.t_shipment_inf si "
                  + "  LEFT JOIN kyoei.m_worker w "
@@ -279,67 +307,152 @@ namespace k001_shukka
                  + "   ON si.JDNNO = jc.JDNNO AND si.LINNO = jc.LINNO"
                  + "  LEFT JOIN kyoei.sc_juchu_ret jcr"
                  + "   ON si.JDNNO = jcr.JDNNO AND si.LINNO = jcr.LINNO"
+                 + "  LEFT JOIN kyoei.t_memo mm"
+                 + "   ON mm.SEQ = si.BIKOU AND mm.LGC_DEL = '0'"
             #region oym mrf tcg 3工場の P_SEQ,WEIGHT,SHIP_SEQ CHK_DATE
                  + "  LEFT JOIN ( "
-                 + "    SELECT"
-                 + "      CAST(SUM(pdc.WEIGHT) as signed) wt"
-                 + "      , pdc.SHIP_SEQ "
-                 + "      , AVG(pdc.CHK_DATE) CHK_DATE"
-                 + "    FROM"
-                 + "    ( "
-                 + "      SELECT"
-                 + "        p.PRODUCT_SEQ"
-                 + "        , p.WEIGHT"
-                 + "        , p.SHIP_SEQ"
-                 + "        , p.SHIP_CHK_DATE CHK_DATE"
-                 + "      FROM"
-                 + "        t_product p"
-                 + "      WHERE"
-                 + "        p.SHIP_SEQ IS NOT NULL"
-                 + "      UNION "
-                 + "      SELECT"
-                 + "        tcg.PRODUCT_SEQ"
-                 + "        , tcg.WEIGHT"
-                 + "        , tcg.SHIP_SEQ "
-                 + "        , tcg.SHIP_CHK_DATE CHK_DATE"
-                 + "      FROM"
-                 + "        t_t_product tcg"
-                 + "      WHERE"
-                 + "        tcg.SHIP_SEQ IS NOT NULL"
-                 + "      UNION "
-                 + "      SELECT"
-                 + "        mp.PRODUCT_SEQ"
-                 + "        , mp.WEIGHT"
-                 + "        , mp.SHIP_SEQ "
-                 + "        , mp.CHK_SHIPPING CHK_DATE"
-                 + "      FROM"
-                 + "        t_m_product mp"
-                 + "      WHERE"
-                 + "        mp.SHIP_SEQ IS NOT NULL"
-                 + "    ) pdc"
-                 + "    GROUP BY pdc.SHIP_SEQ"
+            #region 旧コード
+                 //+ "    SELECT"
+                 //+ "      CAST(SUM(pdc.WEIGHT) as signed) wt"
+                 //+ "      , pdc.SHIP_SEQ "
+                 //+ "      , AVG(pdc.CHK_DATE) CHK_DATE"
+                 //+ "    FROM"
+                 //+ "    ( "
+                 //+ "      SELECT"
+                 //+ "        p.PRODUCT_SEQ"
+                 //+ "        , p.WEIGHT"
+                 //+ "        , p.SHIP_SEQ"
+                 //+ "        , p.SHIP_CHK_DATE CHK_DATE"
+                 //+ "      FROM"
+                 //+ "        t_product p"
+                 //+ "      WHERE"
+                 //+ "        p.SHIP_SEQ IS NOT NULL"
+                 //+ "      UNION "
+                 //+ "      SELECT"
+                 //+ "        tcg.PRODUCT_SEQ"
+                 //+ "        , tcg.WEIGHT"
+                 //+ "        , tcg.SHIP_SEQ "
+                 //+ "        , tcg.SHIP_CHK_DATE CHK_DATE"
+                 //+ "      FROM"
+                 //+ "        t_t_product tcg"
+                 //+ "      WHERE"
+                 //+ "        tcg.SHIP_SEQ IS NOT NULL"
+                 //+ "      UNION "
+                 //+ "      SELECT"
+                 //+ "        mp.PRODUCT_SEQ"
+                 //+ "        , mp.WEIGHT"
+                 //+ "        , mp.SHIP_SEQ "
+                 //+ "        , mp.CHK_SHIPPING CHK_DATE"
+                 //+ "      FROM"
+                 //+ "        t_m_product mp"
+                 //+ "      WHERE"
+                 //+ "        mp.SHIP_SEQ IS NOT NULL"
+                 //+ "    ) pdc"
+                 //+ "    GROUP BY pdc.SHIP_SEQ"
+            #endregion
+
+                 + " SELECT"
+                 + "  CAST(SUM(pdc.WEIGHT) as signed) wt"    //0
+                 + "  , pdc.SHIP_SEQ"    //1
+                 + "  , AVG(pdc.CHK_DATE) CHK_DATE "    //2
+                 + " FROM"
+                 + " ( "
+                 + " SELECT"
+                 + "   p.PRODUCT_SEQ"
+                 + "   , p.WEIGHT"
+                 + "   , p.SHIP_SEQ"
+                 + "   , p.SHIP_CHK_DATE CHK_DATE "
+                 + " FROM"
+                 + "   t_product p "
+                 + " WHERE"
+                 + "   p.SHIP_SEQ IN("
+                 + " SELECT"
+                 + "   si.SEQ"
+                 + " FROM"
+                 + "   kyoei.t_shipment_inf si "
+                 + "   LEFT JOIN kyoei.sc_juchu sj "
+                 + "     ON si.JDNNO = sj.JDNNO "
+                 + "     AND si.LINNO = sj.LINNO "
+                 + " WHERE"
+                 + "   IFNULL( "
+                 + "     sj.SYUYTIDT"
+                 + "     , DATE_FORMAT(si.SHIP_DATE, '%Y%m%d')"
+                 + "   ) {0}"
+                 + "   AND si.LGC_DEL = '0'"
+                 + " )"
+                 + " UNION "
+                 + " SELECT"
+                 + "   tcg.PRODUCT_SEQ"
+                 + "   , tcg.WEIGHT"
+                 + "   , tcg.SHIP_SEQ"
+                 + "   , tcg.SHIP_CHK_DATE CHK_DATE "
+                 + " FROM"
+                 + "   t_t_product tcg "
+                 + " WHERE"
+                 + "   tcg.SHIP_SEQ IN("
+                 + " SELECT"
+                 + "   si.SEQ"
+                 + " FROM"
+                 + "   kyoei.t_shipment_inf si "
+                 + "   LEFT JOIN kyoei.sc_juchu sj "
+                 + "     ON si.JDNNO = sj.JDNNO "
+                 + "     AND si.LINNO = sj.LINNO "
+                 + " WHERE"
+                 + "   IFNULL( "
+                 + "     sj.SYUYTIDT"
+                 + "     , DATE_FORMAT(si.SHIP_DATE, '%Y%m%d')"
+                 + "   ) {0}"
+                 + "   AND si.LGC_DEL = '0'"
+                 + " )"
+                 + " UNION "
+                 + " SELECT"
+                 + "   mp.PRODUCT_SEQ"
+                 + "   , mp.WEIGHT"
+                 + "   , mp.SHIP_SEQ"
+                 + "   , mp.CHK_SHIPPING CHK_DATE "
+                 + " FROM"
+                 + "   t_m_product mp "
+                 + " WHERE"
+                 + "   mp.SHIP_SEQ IN("
+                 + " SELECT"
+                 + "   si.SEQ"
+                 + " FROM"
+                 + "   kyoei.t_shipment_inf si "
+                 + "   LEFT JOIN kyoei.sc_juchu sj "
+                 + "     ON si.JDNNO = sj.JDNNO "
+                 + "     AND si.LINNO = sj.LINNO "
+                 + " WHERE"
+                 + "   IFNULL( "
+                 + "     sj.SYUYTIDT"
+                 + "     , DATE_FORMAT(si.SHIP_DATE, '%Y%m%d')"
+                 + "   ) {0}"
+                 + "   AND si.LGC_DEL = '0'"
+                 + " )"
+                 + ") pdc "
+                 + "     GROUP BY  pdc.SHIP_SEQ"
+
+
                  + "  ) tmp "
                  + "    ON tmp.SHIP_SEQ = si.SEQ "
+                 + "  LEFT JOIN t_can_barcode bc "
+                 + "    ON bc.SHIP_SEQ = si.SEQ AND bc.LOCATION IS NULL"
             #endregion
                  + " WHERE"
                  //+ "   si.UPD_DATE > DATE_ADD(CURRENT_DATE (), interval - 6 month) "
                  //+ "   si.UPD_DATE {0}"
-                 + " CASE"
-                 + "   WHEN jc.SYUYTIDT IS NOT NULL"
-                 + "   THEN CONCAT(SUBSTRING(jc.SYUYTIDT,3,2),'/',SUBSTRING(jc.SYUYTIDT,5,2)"
-                 + "    ,'/',SUBSTRING(jc.SYUYTIDT,7,2))"
-                 + "   ELSE DATE_FORMAT(si.SHIP_DATE, '%y/%m/%d') END {0}"
-                 + "   AND si.LOC_SEQ IN (2,11) "
+                 + " IFNULL(jc.SYUYTIDT,DATE_FORMAT(si.SHIP_DATE,'%Y%m%d')) {0}"
+                 //+ "   AND si.LOC_SEQ IN (2,11) "
                  + "   AND si.LGC_DEL = '0' "
                  + " GROUP BY"
                  + "   si.SEQ "
                  + " ORDER BY"
-                 + " CASE"
-                 + "   WHEN jc.SYUYTIDT IS NOT NULL"
-                 + "   THEN CONCAT(SUBSTRING(jc.SYUYTIDT,3,2),'/',SUBSTRING(jc.SYUYTIDT,5,2)"
-                 + "    ,'/',SUBSTRING(jc.SYUYTIDT,7,2))"
-                 + "   ELSE DATE_FORMAT(si.SHIP_DATE, '%y/%m/%d') END DESC"
-                 + "   ,si.JDNNO DESC,si.LINNO ASC, si.SEQ DESC;"
+                 + " IFNULL(jc.SYUYTIDT,DATE_FORMAT(si.SHIP_DATE,'%Y%m%d')) DESC"
+                 + " , CASE"
+                 + "   WHEN jc.NOKDT IS NOT NULL"
+                 + "   THEN jc.NOKDT"
+                 + "   ELSE DATE_FORMAT(si.DUE_DATE, '%Y%m%d') END DESC"
+
+                 + "   ,si.JDNNO DESC,si.LINNO ASC, si.SEQ DESC"
                  , sTerm, s1);
             return s;
         }
@@ -378,20 +491,21 @@ namespace k001_shukka
                 int[] iw;
                 int[] icol;
                 // 列幅を整える
-                icol = new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
-                iw = new int[] { 52, 83, 45, 77, 250, 200, 70, 90, 30, 83, 67, 77 };
+                icol = new int[] { 0, 1, 2, 3, 4,     5, 6, 7,     8, 9, 10, 11 ,12,13,18};
+                iw = new int[] { 48, 83, 40, 77,77, 220, 180, 70, 90, 30, 83,28, 67, 77,102 };
                 fn.setDgvWidth(dgv, icol, iw);
                 #endregion
+                // 数量
+                //dgv.Columns[6].DefaultCellStyle.Format = "#,0";
+                dgv.Columns["数量"].DefaultCellStyle.Format = "#,0";
 
-                dgv.Columns[6].DefaultCellStyle.Format = "#,0";
-
-                icol = new int[] { 12, 13 };
+                icol = new int[] { 13, 14, 15, 16 };
                 fn.setDgvInVisible(dgv, icol);
 
-                icol = new int[] { 0, 6, 7 };
+                icol = new int[] { 0, 7, 8 };
                 iw = new int[] { -1, -1, 1 };
                 fn.setDgvAlign(dgv, icol, iw);
-                if (fn.dgvWidth(dgv) < 1300)
+                if (fn.dgvWidth(dgv) < 1360)
                 {
                     this.Width = fn.dgvWidth(dgv) + 40;
                     dgv.Width = fn.dgvWidth(dgv);
@@ -402,9 +516,8 @@ namespace k001_shukka
                     dgv.Width = this.Width - 40;
                 }
                 dgv.ClearSelection();
-
+                //CheckedChanged();
                 
-
                 FillDgvCount(dgv, label1);
             }
             catch (Exception ex)
@@ -422,7 +535,7 @@ namespace k001_shukka
 
         private void btn_Click(object sender, EventArgs e)
         {
-            Button btn = (Button)sender;
+                Button btn = (Button)sender;
             if (btn.Name == "button2") // 日付変更
             {
                 if (SDate.Length == 0)
@@ -431,13 +544,21 @@ namespace k001_shukka
                         DateTime.Today.AddDays(-1 * DateTime.Today.Day + 1).ToShortDateString();
                     EDate = SDate;
                 }
-                string[] sSet = { SDate, DateTime.Parse(EDate).AddDays(-1).ToShortDateString(), "更新日" };
+                string[] sSet = { SDate, DateTime.Parse(EDate).AddDays(-1).ToShortDateString(), "" };
                 string[] sRcv = promag_frm.F06_SelDate.ShowMiniForm(this, sSet);
                 if (sRcv[0].Length == 0) return;
                 SDate = sRcv[0];
                 EDate = DateTime.Parse(sRcv[1]).AddDays(1).ToShortDateString();
                 GetData(dgv0, bs0, GetOrder());
                 arrageTextBW(dgv0);
+                string sTitle = "出荷情報一覧";
+                lblCaption.Text = fn.frmTxt(sTitle);
+                string sTerm = string.Empty;
+                double Interval = (DateTime.Parse(EDate) - DateTime.Parse(SDate)).TotalDays;
+                if (Interval == 1) sTerm = SDate;
+                else sTerm = string.Format(" 期間:{0} - {1}", SDate, EDate);
+                lblCaption.Text += " " + sTerm;
+
             }
             if (btn.Name == "button6") // 表示更新
             {
@@ -470,10 +591,10 @@ namespace k001_shukka
             {
                 prtLotList();
             }
-            // 特殊処理
+            // 特殊処理 !マークボタン
             if(btn.Name == "button7")
             {
-                string s = dgv0.CurrentRow.Cells[7].Value.ToString();
+                string s = dgv0.CurrentRow.Cells["STATUS"].Value.ToString();
                 if(s.Substring(0,1) == "0")
                 {
                     string sMsg = string.Empty;
@@ -487,7 +608,13 @@ namespace k001_shukka
                              + " SELECT"
                              + " sj.SEQ"
                              + " FROM kyoei.sc_juchu sj"
-                             + " WHERE sj.JDNNO = '{0}' AND sj.LINNO = '{1}'"
+                             + " WHERE sj.JDNNO = '{0}' AND sj.LINNO = '{1}' AND sj.LGC_DEL = '0'"
+                             + " )"
+                             + " ,ITEM = ("
+                             + " SELECT"
+                             + " sj.HINNMA"
+                             + " FROM kyoei.sc_juchu sj"
+                             + " WHERE sj.JDNNO = '{0}' AND sj.LINNO = '{1}' AND sj.LGC_DEL = '0'"
                              + " )"
                              + " WHERE JDNNO = '{0}' AND LINNO = '{1}';"
                             , sNo, sLn);
@@ -498,8 +625,7 @@ namespace k001_shukka
                         if (sRcv[0].Length == 0) return;
                         kyDb con = new kyDb();
                         con.ExecSql(false, DEF_CON.Constr(), sSql);
-                        GetData(dgv0, bs0, GetOrder());
-                        arrageTextBW(dgv0);
+                        RefleshDgv();
                     }
                     if(s.IndexOf("受注データ削除") >= 0)
                     {
@@ -515,10 +641,22 @@ namespace k001_shukka
                         string[] sSnd = { sMsg, "" };
                         string[] sRcv = promag_frm.F05_YN.ShowMiniForm(sSnd);
                         if (sRcv[0].Length == 0) return;
+
+                        string sChkSql = string.Format(
+                            "SELECT COUNT(*) FROM kyoei.t_product p "
+                            + " WHERE p.SHIP_SEQ = {0};"
+                            , sSeq);
                         kyDb con = new kyDb();
+                        if(con.iGetCount(sChkSql,DEF_CON.Constr()) > 0)
+                        {
+                            sMsg = "製品Lotがこの出荷に紐付けされています。\r\n"
+                            + "紐付けを解除後オーダーの取消を行ってく下さい。";
+                            string[] sSnd1 = { sMsg, "false" };
+                            string[] sRcv1 = promag_frm.F05_YN.ShowMiniForm(sSnd);
+                            return;
+                        }
                         con.ExecSql(false, DEF_CON.Constr(), sSql);
-                        GetData(dgv0, bs0, GetOrder());
-                        arrageTextBW(dgv0);
+                        RefleshDgv();
                     }
                 }
             }
@@ -530,17 +668,22 @@ namespace k001_shukka
                 {
                     string s0 = dgv0.CurrentRow.Cells[0].Value.ToString();
                     string s1 = dgv0.CurrentRow.Cells[1].Value.ToString();
-                    string s2 = dgv0.CurrentRow.Cells[7].Value.ToString();
+                    
+                    string s2 = dgv0.CurrentRow.Cells["STATUS"].Value.ToString();
                     if (s2.Length > 0) s2 = s2.Substring(0, 1);
                     string s3 = dgv0.CurrentRow.Cells[2].Value.ToString();
-                    if (s2 == "6" || s2 == "1" || s2 == "2" || s2 == "4")
+                    string s4 = dgv0.CurrentRow.Cells["コLot"].Value.ToString();
+
+                    if (s2 == "6" || s2 == "1" || s2 == "2" || s2 == "4" 
+                                            || (s2 == "3" && s4.Length > 0))
                     {
                         if (s1.Length > 0 && s2.Length > 0)
                         {
                             string[] sSnd = { s0, s1, s2, s3 };
                             string[] sRcv = F08_ChkShipment.ShowMiniForm(this, sSnd);
                         }
-                    } else
+                    }
+                    else
                     {
                         string[] snd = { "売上番号登録出来るSTATUSではありません。", "false" };
                         string[] reT = promag_frm.F05_YN.ShowMiniForm(snd);
@@ -561,7 +704,8 @@ namespace k001_shukka
                 {
                     string s0 = dgv0.CurrentRow.Cells[0].Value.ToString();
                     string s1 = dgv0.CurrentRow.Cells[1].Value.ToString();
-                    string s2 = dgv0.CurrentRow.Cells[7].Value.ToString();
+                    
+                    string s2 = dgv0.CurrentRow.Cells["STATUS"].Value.ToString();
                     if (s2.Length > 0) s2 = s2.Substring(0, 1);
                     string s3 = dgv0.CurrentRow.Cells[2].Value.ToString();
                     if (s2 == "7")
@@ -591,7 +735,8 @@ namespace k001_shukka
             {
                 string s = string.Empty;
                 if (dgv0.SelectedRows.Count != 1) s = "1";
-                if (dgv0.CurrentRow.Cells[8].Value.ToString() != "E") s = "2";
+                
+                if (dgv0.CurrentRow.Cells["連"].Value.ToString() != "E") s = "2";
                 if (s.Length > 0)
                 {
                     string[] snd = { "エラーの行を1行選択してからクリックして下さい。", "false" };
@@ -605,6 +750,12 @@ namespace k001_shukka
                 var fileInfo = new DirectoryInfo(dirPath).EnumerateFiles(sTarget)
                     .OrderByDescending(_file => _file.CreationTime)
                     .FirstOrDefault();
+                if(fileInfo == null)
+                {
+                    string[] sSend = { "連携ファイルが見つかりません。", "false" };
+                    string[] sRcv = promag_frm.F05_YN.ShowMiniForm(sSend);
+                    return;
+                }
                 s = fileInfo.ToString();
                 if (s.Substring(s.Length - 4) != ".csv")
                 {
@@ -615,6 +766,245 @@ namespace k001_shukka
                 else s1 = dirPath + fileInfo.ToString();
                 System.Diagnostics.Process.Start(s1);
             }
+            // Labo
+            if(btn.Name == "button11")
+            {
+                string sSeq = dgv0.CurrentRow.Cells[0].Value.ToString();
+                fn.CrtUsrIni("2", "011" + sSeq);
+                var proc = new System.Diagnostics.Process();
+                // C:\Users\h-kanemaru\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\kProductPlan
+                try
+                {
+                    string s = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                    s += @"\Microsoft\Windows\Start Menu\Programs\HINKAN\HINKAN.appref-ms";
+                    if (System.IO.File.Exists(s))
+                    {
+                        proc.StartInfo.FileName = s;
+                        proc.Start();
+                    }
+                    else
+                    {
+                        string[] sSet = { "フォルダが開きますので、「setup」を実行して下さい。", "false" };
+                        _ = promag_frm.F05_YN.ShowMiniForm(sSet);
+                        System.Diagnostics.Process.Start(@"\\10.100.10.20\tetra\HINKAN");
+                    }
+                }
+                catch
+                {
+                    string[] sSet = { "フォルダが開きますので、「setup」を実行して下さい。", "false" };
+                    _ = promag_frm.F05_YN.ShowMiniForm(sSet);
+                    System.Diagnostics.Process.Start(@"\\10.100.10.20\tetra\HINKAN");
+                }
+            }
+            // 出荷承認　　0 si.SEQ 出荷No  1 i.JDNNO 伝票番号  2 si.LINNO 行番号
+            if (btn.Name == "button12")
+            {
+                if(dgv0.SelectedRows.Count != 1)
+                {
+                    string[] snd = { "出荷情報を1行選択して下さい。", "false" };
+                    string[] reT = promag_frm.F05_YN.ShowMiniForm(snd);
+                    return;
+                }
+                string sSipSEQ = dgv0.CurrentRow.Cells[0].Value.ToString();
+                
+                if (dgv0.CurrentRow.Cells["STATUS"].Value.ToString().Substring(0,1) == "0" ||
+                    dgv0.CurrentRow.Cells["STATUS"].Value.ToString().Substring(0, 1) == "1" ||
+                    dgv0.CurrentRow.Cells["STATUS"].Value.ToString().Substring(0, 1) == "2")
+                {
+                    string[] snd = { "Lot選定したものが対象となります。", "false" };
+                    _ = promag_frm.F05_YN.ShowMiniForm(snd);
+                    return;
+                }
+                if (dgv0.SelectedRows.Count == 1)
+                {
+                    string sGetCount = string.Format(
+                        "SELECT COUNT(*)"
+                        + " FROM kyoei.t_ship_permission sp"
+                        + " WHERE sp.S_SEQ = {0} AND sp.LGC_DEL = '0';"
+                        , sSipSEQ);
+
+                    kyDb con = new kyDb();
+
+                    if(con.iGetCount(sGetCount,DEF_CON.Constr()) == 0)  //　承認依頼していない場合
+                    {
+                        string[] snd = { "選択した出荷Lotの出荷承認を依頼しますか", "" };
+                        string[] reT = promag_frm.F05_YN.ShowMiniForm(snd);
+                        if (reT[0].Length == 0) return;
+                        string sIns = string.Format(
+                            "INSERT INTO t_ship_permission ("
+                            + "S_SEQ,REQUEST_ID, REQUEST_DATE,LGC_DEL,LOCATION"
+                            + ") VALUES ("
+                            + "{0}, '{1}', NOW(), '0', 2"
+                            + ");"
+                            , sSipSEQ, usr.id);
+                        if(con.ExecSql(false,DEF_CON.Constr(), sIns).Length == 0)
+                        {
+                            string[] snd1 = { "出荷承認を依頼しました。", "false" };
+                            string[] reT1 = promag_frm.F05_YN.ShowMiniForm(snd1);
+                        }
+                    }
+                    if (true)
+                    {
+                        string[] snd = { "承認画面を開きますか？", "" };
+                        string[] reT = promag_frm.F05_YN.ShowMiniForm(snd);
+                        if (reT[0].Length == 0) return;
+                    }
+                    string sSEQ = dgv0.CurrentRow.Cells[0].Value.ToString();
+                    
+                    string sDate = dgv0.CurrentRow.Cells["出荷日"].Value.ToString();
+                    sDate = "20" + sDate;
+                    string sDest = dgv0.CurrentRow.Cells["出荷先"].Value.ToString();
+                    string sGrade = dgv0.CurrentRow.Cells["品名"].Value.ToString();
+                    string sWeight = dgv0.CurrentRow.Cells["数量"].Value.ToString();
+
+                    // ダブルクリック前に列の並び替えが行われていれば、その状態を記憶
+                    string sOrder = string.Empty;
+                    string sOrdColName = string.Empty;
+                    int iFr = dgv0.FirstDisplayedScrollingRowIndex;
+                    if (dgv0.SortedColumn != null)
+                    {
+                        if (dgv0.SortOrder.ToString() == "Ascending") sOrder = "ASC";
+                        else sOrder = "DESC";
+                        sOrdColName = dgv0.SortedColumn.Name;
+                    }
+
+                    string[] sRel = { sSEQ, sDate, sDest, sGrade, sWeight };
+                    _ = F09_Permit.ShowMiniForm(this, sRel);
+
+
+                    GetData(dgv0, bs0, GetOrder());
+                    arrageTextBW(dgv0);
+                    // 並び順をダブルクリック前に戻し値を検索
+                    int ir = 0;
+                    if (sOrder.Length > 0)
+                    {
+                        bs0.Sort = string.Format("{0} {1}", sOrdColName, sOrder);
+
+                        for (int r = 0; r < dgv0.Rows.Count; r++)
+                        {
+                            if (dgv0.Rows[r].Cells[0].Value.ToString() == sSEQ)
+                            {
+                                ir = r;
+                                break;
+                            }
+                        }
+                    }
+                    if (ir < dgv0.Rows.Count) dgv0.Rows[ir].Selected = true;
+                    dgv0.FirstDisplayedScrollingRowIndex = iFr;
+                }
+            }
+            // メモ登録
+            if (btn.Name == "button13")
+            {
+                string sNo = dgv0.CurrentRow.Cells["BIKOU"].Value.ToString();
+                string[] sSnd = { "memo",sNo };
+                string[] sRcv = F05_Dialog.ShowMiniForm(this, sSnd);
+                if(sRcv[0].Length > 0)
+                {
+                    string sLock = "SELECT COUNT(*) FROM kyoei.t_tlock WHERE TBL_NAME = 't_memo';"; // t_memo >> 長さは20字以内
+                    mydb.kyDb con = new kyDb();
+                    if (con.iGetCount(sLock,DEF_CON.Constr()) > 0)
+                    {
+                        string[] seT = { "現在他のユーザーが更新中です。登録をやり直して下さい。\r\n"
+                                + "改善しない場合はシステム管理者にご連絡下さい。", "false" };
+                        string[] rcvT = promag_frm.F05_YN.ShowMiniForm(seT);
+                        return;
+                    }
+                    // ロックテーブルに作業を登録
+                    sLock = "INSERT INTO t_tlock (TBL_NAME) VALUES ('t_memo');";
+                    bool bcontinue = true;
+                    if (con.ExecSql(false,DEF_CON.Constr(), sLock).Length > 0)
+                    {
+                        string[] seT = { "登録に失敗しました。連続する場合はシステム管理者にご連絡下さい。", "false" };
+                        string[] rcvT = promag_frm.F05_YN.ShowMiniForm(seT);
+                        bcontinue = false;
+                        return;
+                    }
+                    // 登録処理
+                    if (bcontinue)
+                    {
+                        string sSql = string.Empty;
+                        // memo_tableの数を数える
+                        sSql = "SELECT COUNT(*) FROM kyoei.T_memo;";
+                        int iCnt = con.iGetCount(sSql, DEF_CON.Constr());
+                        iCnt++;
+                        // SHIP_INFとmemo_tableに書き込む
+                        string subSEQ = string.Empty;
+                        if (sRcv[1].Length == 0) subSEQ = iCnt.ToString();
+                        else subSEQ = sRcv[1];
+                        sSql = string.Format(
+                            "UPDATE kyoei.t_shipment_inf SET BIKOU = {0} WHERE SEQ = {1};"
+                            , iCnt.ToString(), dgv0.CurrentRow.Cells[0].Value.ToString());
+                        sSql += string.Format(
+                            "INSERT INTO kyoei.t_memo (SEQ, SUB_SEQ, CONTENT, UPD_DATE, UPD_ID, LGC_DEL) VALUES "
+                            + " ({0}, {3}, '{1}', NOW(), '{2}', '0');"
+                            , iCnt, sRcv[0], usr.id, subSEQ);
+                        if (con.ExecSql(false, DEF_CON.Constr(), sSql).Length > 0)
+                        {
+                            string[] seT = { "登録に失敗しました。連続する場合はシステム管理者にご連絡下さい。", "false" };
+                            string[] rcvT = promag_frm.F05_YN.ShowMiniForm(seT);
+                            // ロックテーブルを抹消
+                            sLock = "DELETE FROM t_tlock WHERE TBL_NAME = 't_memo';";
+                            con.ExecSql(false,DEF_CON.Constr(), sLock);
+                            return;
+                        }
+                    }
+                    // ロックテーブルを抹消
+                    sLock = "DELETE FROM t_tlock WHERE TBL_NAME = 't_memo';";
+                    con.ExecSql(false, DEF_CON.Constr(), sLock);
+
+                    //ひゅう字更新
+                    DataGridView dgv = this.dgv0;
+                    // データ欄以外は何もしない
+                    if (!bdgvCellClk) return;
+
+                    int ir = dgv.CurrentCell.RowIndex;
+                    int ifr = dgv.FirstDisplayedScrollingRowIndex;
+                    // ダブルクリック前に列の並び替えが行われていれば、その状態を記憶
+                    string sOrder = string.Empty;
+                    string sOrdColName = string.Empty;
+                    if (dgv.SortedColumn != null)
+                    {
+                        if (dgv.SortOrder.ToString() == "Ascending") sOrder = "ASC";
+                        else sOrder = "DESC";
+                        sOrdColName = dgv.SortedColumn.Name;
+                    }
+                    string sFilter = string.Empty;
+                    if (bs0.Filter.Length > 0) sFilter = bs0.Filter; 
+
+                    string s0 = dgv.Rows[ir].Cells[0].Value.ToString(); // SEQ
+                    //string s1 = dgv.Rows[ir].Cells[14].Value.ToString(); // HINCD
+                    
+
+                    GetData(dgv0, bs0, GetOrder());
+                    this.Visible = false;
+                    arrageTextBW(dgv);
+
+                    // 並び順をダブルクリック前に戻し値を検索
+                    if (sOrder.Length > 0)
+                    {
+                        bs0.Sort = string.Format("{0} {1}", sOrdColName, sOrder);
+
+                        for (int r = 0; r < dgv.Rows.Count; r++)
+                        {
+                            if (dgv.Rows[r].Cells[0].Value.ToString() == s0)
+                            {
+                                ir = r;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (sFilter.Length > 0) bs0.Filter = sFilter;
+
+                    if (ir + 1 < dgv.Rows.Count)
+                    {
+                        dgv.Rows[ir].Selected = true;
+                        dgv.FirstDisplayedScrollingRowIndex = ifr;
+                    }
+                    this.Visible = true;
+                }
+            }
         }
 
         private void arrageTextBW(DataGridView dgv)
@@ -623,37 +1013,45 @@ namespace k001_shukka
             if (dgv.Rows.Count > 0)
             {
                 #region 検索ボックスの位置
-                int iwdt = dgv.Columns[0].Width;
+                int iwdt = dgv.Columns["出荷No"].Width;
                 textBox0.Left = dgv.Left;
                 textBox0.Width = iwdt;
 
                 textBox1.Left = textBox0.Left + textBox0.Width + 1;
-                iwdt = dgv.Columns[1].Width;
+                iwdt = dgv.Columns["伝票番号"].Width;
                 textBox1.Width = iwdt;
 
                 textBox2.Left = textBox1.Left + textBox1.Width + 1;
-                iwdt = dgv.Columns[2].Width;
+                iwdt = dgv.Columns["行番号"].Width;
                 textBox2.Width = iwdt;
 
                 textBox3.Left = textBox2.Left + textBox2.Width + 1;
-                iwdt = dgv.Columns[3].Width;
+                iwdt = dgv.Columns["出荷日"].Width;
                 textBox3.Width = iwdt;
 
-                textBox4.Left = textBox3.Left + textBox3.Width + 1;
-                iwdt = dgv.Columns[4].Width;
+                textBox8.Left = textBox3.Left + textBox3.Width + 1;
+                iwdt = dgv.Columns["納品日"].Width;
+                textBox8.Width = iwdt;
+
+                textBox4.Left = textBox8.Left + textBox8.Width + 1;
+                iwdt = dgv.Columns["出荷先"].Width;
                 textBox4.Width = iwdt;
 
                 textBox5.Left = textBox4.Left + textBox4.Width + 1;
-                iwdt = dgv.Columns[5].Width;
+                iwdt = dgv.Columns["品名"].Width;
                 textBox5.Width = iwdt;
 
-                textBox6.Left = textBox5.Left + textBox5.Width + dgv.Columns[6].Width + 1;
-                iwdt = dgv.Columns[7].Width;
+                textBox6.Left = textBox5.Left + textBox5.Width + dgv.Columns["数量"].Width + 1;
+                iwdt = dgv.Columns["STATUS"].Width;
                 textBox6.Width = iwdt;
 
-                textBox7.Left = textBox6.Left + textBox6.Width + dgv.Columns[8].Width + 1;
-                iwdt = dgv.Columns[9].Width;
+                textBox7.Left = textBox6.Left + textBox6.Width + dgv.Columns["連"].Width + 1;
+                iwdt = dgv.Columns["出荷番号"].Width;
                 textBox7.Width = iwdt;
+
+                textBox9.Left = dgv.Left + dgv.Width - dgv.Columns["コLot"].Width;
+                iwdt = dgv.Columns["コLot"].Width;
+                textBox9.Width = iwdt;
                 #endregion
             }
             this.Visible = true;
@@ -686,7 +1084,7 @@ namespace k001_shukka
             }
             #endregion
             //string filePath = @"C:\app\temp.xlsx";
-            string fileNm = string.Format("{1}出荷管理表{0}.xlsx", DateTime.Now.ToLongDateString(), argVals[0]);
+            string fileNm = string.Format("{1}出荷管理表{0}.xlsx", DateTime.Now.ToString("yyyyMMddHHmmss"), argVals[0]);
             var fp = System.IO.Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), fileNm);
 
@@ -737,7 +1135,13 @@ namespace k001_shukka
 
         private void textBox_TextChanged(object sender, EventArgs e)
         {
-            TextBox tb = (TextBox)sender;
+            textboxFilter();
+            FillDgvCount(dgv0, label1);
+            arrageTextBW(dgv0);
+        }
+
+        private void textboxFilter()
+        {
             string sFilter = string.Empty;
             if (textBox0.Text.Length > 0)
             {
@@ -771,15 +1175,20 @@ namespace k001_shukka
             {
                 sFilter += string.Format(" AND (出荷番号 LIKE '%{0}%')", textBox7.Text);
             }
-
+            if (textBox8.Text.Length > 0)
+            {
+                sFilter += string.Format(" AND (納品日 LIKE '%{0}%')", textBox8.Text);
+            }
+            if (textBox9.Text.Length > 0)
+            {
+                sFilter += string.Format(" AND (コLot LIKE '%{0}%')", textBox9.Text);
+            }
             if (sFilter.Length > 0)
             {
                 sFilter = sFilter.Substring(4);
                 bs0.Filter = sFilter;
             }
             else bs0.Filter = string.Empty;
-            FillDgvCount(dgv0, label1);
-            arrageTextBW(dgv0);
         }
 
         #region dgvクリック関連
@@ -795,7 +1204,8 @@ namespace k001_shukka
             DataGridView dgv = (DataGridView)sender;
             // データ欄以外は何もしない
             if (!bdgvCellClk) return;
-            string s = dgv.Rows[e.RowIndex].Cells[7].Value.ToString();
+            
+            string s = dgv.Rows[e.RowIndex].Cells["STATUS"].Value.ToString();
             s = s.Substring(0, 1);
             if (s == "0") button7.Enabled = true;
             if (s == "6") button10.Enabled = true;
@@ -820,7 +1230,7 @@ namespace k001_shukka
                 label2.Left = x; label2.Top = y;
                 label2.Text = "コピーしました。";
                 this.Refresh();
-                System.Threading.Thread.Sleep(100);
+                System.Threading.Thread.Sleep(10);
                 label2.Text = ""; label2.Left = 0; label2.Top = 0;
             }
             catch (Exception ex)
@@ -845,9 +1255,9 @@ namespace k001_shukka
                 else sOrder = "DESC";
                 sOrdColName = dgv.SortedColumn.Name;
             }
-
+            
             string s0 = dgv.Rows[e.RowIndex].Cells[0].Value.ToString(); // SEQ
-            string s1 = dgv.Rows[e.RowIndex].Cells[13].Value.ToString(); // HINCD
+            string s1 = dgv.Rows[e.RowIndex].Cells["HINCD"].Value.ToString(); // HINCD
             string[] sendText = { s0, s1 };
 
             //// FRMxxxxから送られてきた値を受け取る
@@ -912,7 +1322,7 @@ namespace k001_shukka
                 + "   , jc.JDNNO 伝票番号"  //5
                 + "   , jc.NHSAD 住所"  //6
                 + "   , jc.NHSTL 電話"  //7
-                + "   , IFNULL(jc.HINNMA, si.ITEM) 品名"  //8
+                + "   , IFNULL(si.ITEM,jc.HINNMA) 品名"  //8
                 + "   , IFNULL(jc.UODSU,si.SHIPMENT_QUANTITY) 数量"  //9
                 + "   , jc.UODTK 単価"  //10
                 + "   , jc.LINCM 摘要"  //11
@@ -923,7 +1333,7 @@ namespace k001_shukka
                 + "  FROM kyoei.t_shipment_inf si"
                 + "  LEFT JOIN kyoei.sc_juchu jc"
                 + "   ON si.JDNNO = jc.JDNNO AND si.LINNO = jc.LINNO"
-                + "  WHERE si.JDNNO = '{0}'"
+                + "  WHERE si.JDNNO = '{0}' AND si.LGC_DEL = '0' "
                 + "  ORDER BY si.LINNO;"
                 , sDNNO);
         }
@@ -936,36 +1346,12 @@ namespace k001_shukka
                  + " FROM kyoei.t_shipment_inf si"
                  + " LEFT JOIN kyoei.sc_juchu sj"
                  + " ON sj.JDNNO = si.JDNNO AND sj.LINNO = si.LINNO"
+                 + " AND si.LGC_DEL = '0'"
                  + " WHERE sj.JDNNO = '{0}';"
                  , DENNO
                 );
         }
 
-        /*
-担当者コード	TANCD
-担当者名	TANNM
-受注伝票番号	JDNNO
-行番号	LINNO
-
-得意先名	TOKNM
-納品先コード	NHSCD
-納品先名	NHSNM
-納品先郵便番号	NHSZP
-
-納品先住所	NHSAD
-納品先電話番号	NHSTL
-
-納品先担当者名	NHSCTANM
-商品名	HINNMA
-商品コード	HINCD
-出荷数	UODSU
-単位	UNTNM
-出荷日	SYUYTIDT
-
-単価	UODTK
-摘要	LINCM
-更新日	UPD_DATE
-         */
         private void prtVoucher(string sKBN)
         {
             // ここに至る前に、dagagridviewの選択状態を確認する
@@ -1007,9 +1393,9 @@ namespace k001_shukka
             if(sKBN == "1")
             {
                 try
-                {
+                {                    
                     #region 得意先コードを得るSQL
-                    string sTOKCD = dgv0.CurrentRow.Cells[12].Value.ToString();
+                    string sTOKCD = dgv0.CurrentRow.Cells["TOKCD"].Value.ToString();
                     string GetTOK = string.Format(
                         "SELECT"
                          + " CONCAT(tok.TOKNMA,tok.TOKNMB) A"  //0
@@ -1605,7 +1991,7 @@ namespace k001_shukka
             string s = string.Format(
                 "SELECT"
              + " si.SEQ"  //0
-             + " ,IFNULL(jc.HINNMA,si.ITEM)"  //1
+             + " ,IFNULL(si.ITEM,jc.HINNMA)"  //1
              + " ,IFNULL(jc.UODSU,si.SHIPMENT_QUANTITY)"  //2
              + " ,tmp.WEIGHT"  //3
              + " ,tmp.LOT_NO"  //4
@@ -1642,8 +2028,8 @@ namespace k001_shukka
              + "  WHERE tp.SHIP_SEQ IN ({0})"
              + "  ) tmp"
              + "  ON tmp.SHIP_SEQ = si.SEQ"
-             + " WHERE"
-             + "   si.SEQ IN ({0})"
+             + " WHERE si.SEQ IN ({0})"
+             + " GROUP BY si.SEQ,tmp.LOT_NO"
              + " ORDER BY"
              + "   jc.LINNO"
              + "   ,IFNULL(jc.HINNMA,si.ITEM)"
@@ -1672,14 +2058,18 @@ namespace k001_shukka
                  + " , jc.NHSNM"                 // 8
                  + " , jc.NHSTL"                 // 9
                  + " , jc.SOUCD"                 //10
+                 + " , bc.LOT"                   //11
                  + " FROM kyoei.t_shipment_inf si"
                  + " LEFT JOIN kyoei.sc_juchu jc"
                  + " ON si.JDNNO = jc.JDNNO AND si.LINNO = jc.LINNO"
+                 + " LEFT JOIN t_can_barcode bc "
+                 + " ON bc.SHIP_SEQ = si.SEQ"
                  + " WHERE si.SEQ = {0};"
                  , shipSEQ
                 );
             return s;
         }
+
         private void prtLotList()
         {
             string sMsg = string.Empty;
@@ -1732,9 +2122,10 @@ namespace k001_shukka
                     string sNOHAD = string.Empty;
                     string sNOUNM = string.Empty;
                     string sNOUTL = string.Empty;
+                    string sConLot = string.Empty; // コンテナロット
 
                     string ShipSeq = dgv0.Rows[i].Cells[0].Value.ToString(); // SHIP_SEQ
-                    string sQty = dgv0.Rows[i].Cells[6].Value.ToString(); // 数量
+                    string sQty = dgv0.Rows[i].Cells["数量"].Value.ToString(); // 数量
                     #endregion
 
                     kyDb con = new kyDb();
@@ -1753,6 +2144,7 @@ namespace k001_shukka
                     sNOHAD = con.ds.Tables[0].Rows[0][7].ToString();
                     sNOUNM = con.ds.Tables[0].Rows[0][8].ToString();
                     sNOUTL = con.ds.Tables[0].Rows[0][9].ToString();
+                    sConLot = con.ds.Tables[0].Rows[0][11].ToString();
                     #endregion
 
                     // 同一受注番号のものがあるか探す。
@@ -1959,7 +2351,9 @@ namespace k001_shukka
                         #region メイン-ヘッダ行
                         headerwidth = new float[] { 0.5f, 0.125f, 0.084f, 0.125f, 0.166f };
                         item = new string[] { "品　名　　・　　規　格　　・　　個数", "数　量", "日 付", "ロ ッ ト №", "充 填 ロ ッ ト №" };
-                        
+                        bool bCon = false;
+                        if (v[0, 7].ToString().Length > 0) bCon = true;
+                        if (bCon) item = new string[] { "品　名　　・　　規　格　　・　　個数", "数　量", "日 付", "管 理 番 号", "充 填 ロ ッ ト №" };
                         PdfPTable tbl4 = new PdfPTable(headerwidth);
 
                         tbl4.WidthPercentage = 100;
@@ -2036,7 +2430,9 @@ namespace k001_shukka
                                 
                                 sHIDUKE = v[irow, 5].ToString();
                                 sBRANCH = v[irow, 6].ToString();
+                                if (bCon) sBRANCH = "";
                                 sCONTENA = v[irow, 7].ToString();
+                                if (bCon && irow > 0) sCONTENA = "";
                             }
 
                             item = new string[] { s3, s2, sHIDUKE, sBRANCH, sCONTENA };
@@ -2092,6 +2488,74 @@ namespace k001_shukka
                 dgv0.Rows[ir].Selected = true;
                 dgv0.FirstDisplayedScrollingRowIndex = ir;
             }
+        }
+
+        private void checkBox_CheckedChanged(object sender, EventArgs e)
+        {
+            CheckedChanged();
+            RefleshDgv();
+        }
+
+        private void CheckedChanged()
+        {
+            string s = string.Empty;
+            textboxFilter();
+            if(bs0.Filter != null)s = bs0.Filter;
+            if (s.Length > 0 && !checkBox1.Checked ) s += " AND ";
+            if (!checkBox1.Checked) s += "LOC_SEQ IN ('0000000000003','0000000000011')";
+
+            bs0.Filter = s;
+            FillDgvCount(dgv0, label1);
+        }
+
+        private void RefleshDgv()
+        {
+            if (dgv0.Rows.Count <= 0) return;
+            int irow = 0;
+            if (dgv0.CurrentCell.RowIndex >= 0) irow = dgv0.CurrentCell.RowIndex;
+            // ダブルクリック前に列の並び替えが行われていれば、その状態を記憶
+            string sOrder = string.Empty;
+            string sOrdColName = string.Empty;
+            string sFilter = string.Empty;
+            if (bs0.Filter.Length > 0) sFilter = bs0.Filter;
+            
+            if (dgv0.SortedColumn != null)
+            {
+                if (dgv0.SortOrder.ToString() == "Ascending") sOrder = "ASC";
+                else sOrder = "DESC";
+                sOrdColName = dgv0.SortedColumn.Name;
+            }
+
+            string s0 = dgv0.Rows[irow].Cells[0].Value.ToString(); // SEQ
+            string s1 = dgv0.Rows[irow].Cells["HINCD"].Value.ToString(); // HINCD
+            
+
+
+            this.Visible = false;
+            arrageTextBW(dgv0);
+
+            bs0.Filter = sFilter;
+            // 並び順をダブルクリック前に戻し値を検索
+            if (sOrder.Length > 0)
+            {
+                bs0.Sort = string.Format("{0} {1}", sOrdColName, sOrder);
+
+                for (int r = 0; r < dgv0.Rows.Count; r++)
+                {
+                    if (dgv0.Rows[r].Cells[0].Value.ToString() == s0)
+                    {
+                        irow = r;
+                        break;
+                    }
+                }
+            }
+
+            if (irow + 1 < dgv0.Rows.Count)
+            {
+                dgv0.Rows[irow].Selected = true;
+                dgv0.FirstDisplayedScrollingRowIndex = irow;
+            }
+            this.Visible = true;
         }
     }
 }

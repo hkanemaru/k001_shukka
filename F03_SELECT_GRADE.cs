@@ -156,13 +156,15 @@ namespace k001_shukka
                             sSeq += "," + argVals[i];
                         }
                     }
-                    sSeq = sSeq.Substring(1);
+                    if (sSeq.Length > 0) sSeq = sSeq.Substring(1);
                 }
                 #region string s
                 string s = string.Empty;
+                string sWhr = string.Empty;
                 if (dgv.Name == "dgv1")
                 {
-                    s = "SELECT ba.B_AC_SEQ seq, ba.B_ACCOUNT 取引先, ba.B_ACCOUNT_KANA カナ, ba.BA_KBN FROM M_B_ACCOUNT ba WHERE LGC_DEL = '0';";
+                    s = "SELECT ba.B_AC_SEQ seq, ba.B_ACCOUNT 取引先, ba.B_ACCOUNT_KANA カナ, ba.BA_KBN "+
+                        " FROM M_B_ACCOUNT ba WHERE LGC_DEL = '0';";
                     if (sKana.Length == 0 && argVals.Length > 2 && sSeq.Length > 0)
                     {
                         s = string.Format(

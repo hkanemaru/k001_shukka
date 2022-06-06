@@ -42,7 +42,7 @@ namespace k001_shukka
             // タイトルバー表示設定
             this.Text = string.Format("【{0}】 {1}"
                 , this.Name
-                , DEF_CON.prjName + " " + DEF_CON.verString);
+                , DEF_CON.prjName + " " + DEF_CON.GetVersion());
             #endregion
 
             #region dgv設定のここでバインド
@@ -161,6 +161,9 @@ namespace k001_shukka
                 return;
             }
             mydb.kyDb con = new mydb.kyDb();
+            string sUpdInf = string.Format(
+                "UPDATE t_shipment_inf SET UPD_DATE = NOW(), UPD_ID = '{0}' WHERE SEQ = {1};"
+                ,usr.id, argVals[0]);
             if (argVals[2] == "7") // 受領書確認登録
             {
                 s = "00000000" + s;
@@ -202,7 +205,8 @@ namespace k001_shukka
                         + " WHERE JDNNO = '{1}' AND LINNO = '{2}';"
                         , s, argVals[1], argVals[3]);
                 }
-            }
+                if (sUpd.Length > 0) sUpd += sUpdInf;
+             }
             if (sUpd.Length > 0)
             {
                 string sRet = con.ExecSql(false, DEF_CON.Constr(), sUpd);

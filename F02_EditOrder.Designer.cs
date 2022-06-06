@@ -66,6 +66,9 @@
             this.label15 = new System.Windows.Forms.Label();
             this.checkBox2 = new System.Windows.Forms.CheckBox();
             this.label17 = new System.Windows.Forms.Label();
+            this.cb3 = new System.Windows.Forms.CheckBox();
+            this.button12 = new System.Windows.Forms.Button();
+            this.button11 = new System.Windows.Forms.Button();
             this.button10 = new System.Windows.Forms.Button();
             this.button9 = new System.Windows.Forms.Button();
             this.button8 = new System.Windows.Forms.Button();
@@ -231,7 +234,7 @@
             // 
             this.textBox6.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.textBox6.ImeMode = System.Windows.Forms.ImeMode.Hiragana;
-            this.textBox6.Location = new System.Drawing.Point(701, 160);
+            this.textBox6.Location = new System.Drawing.Point(761, 160);
             this.textBox6.Name = "textBox6";
             this.textBox6.Size = new System.Drawing.Size(129, 28);
             this.textBox6.TabIndex = 59;
@@ -242,7 +245,7 @@
             // 
             this.textBox5.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.textBox5.ImeMode = System.Windows.Forms.ImeMode.Off;
-            this.textBox5.Location = new System.Drawing.Point(701, 128);
+            this.textBox5.Location = new System.Drawing.Point(761, 128);
             this.textBox5.Name = "textBox5";
             this.textBox5.Size = new System.Drawing.Size(82, 28);
             this.textBox5.TabIndex = 57;
@@ -251,7 +254,7 @@
             // 
             this.textBox3.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.textBox3.ImeMode = System.Windows.Forms.ImeMode.Hiragana;
-            this.textBox3.Location = new System.Drawing.Point(500, 160);
+            this.textBox3.Location = new System.Drawing.Point(560, 160);
             this.textBox3.Name = "textBox3";
             this.textBox3.Size = new System.Drawing.Size(112, 28);
             this.textBox3.TabIndex = 56;
@@ -262,7 +265,7 @@
             // 
             this.textBox2.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.textBox2.ImeMode = System.Windows.Forms.ImeMode.Hiragana;
-            this.textBox2.Location = new System.Drawing.Point(500, 128);
+            this.textBox2.Location = new System.Drawing.Point(560, 128);
             this.textBox2.Name = "textBox2";
             this.textBox2.Size = new System.Drawing.Size(112, 28);
             this.textBox2.TabIndex = 55;
@@ -273,7 +276,7 @@
             // 
             this.textBox1.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.textBox1.ImeMode = System.Windows.Forms.ImeMode.Hiragana;
-            this.textBox1.Location = new System.Drawing.Point(119, 160);
+            this.textBox1.Location = new System.Drawing.Point(179, 160);
             this.textBox1.Name = "textBox1";
             this.textBox1.Size = new System.Drawing.Size(306, 28);
             this.textBox1.TabIndex = 54;
@@ -282,7 +285,7 @@
             // 
             this.textBox4.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.textBox4.ImeMode = System.Windows.Forms.ImeMode.Hiragana;
-            this.textBox4.Location = new System.Drawing.Point(119, 128);
+            this.textBox4.Location = new System.Drawing.Point(179, 128);
             this.textBox4.Name = "textBox4";
             this.textBox4.Size = new System.Drawing.Size(306, 28);
             this.textBox4.TabIndex = 53;
@@ -292,18 +295,19 @@
             this.dgv1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.dgv1.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.AllCells;
             this.dgv1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dgv1.Location = new System.Drawing.Point(302, 242);
             this.dgv1.Name = "dgv1";
             this.dgv1.RowTemplate.Height = 21;
-            this.dgv1.Size = new System.Drawing.Size(566, 438);
+            this.dgv1.Size = new System.Drawing.Size(662, 438);
             this.dgv1.TabIndex = 74;
             // 
             // label8
             // 
             this.label8.AutoSize = true;
             this.label8.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.label8.Location = new System.Drawing.Point(622, 164);
+            this.label8.Location = new System.Drawing.Point(682, 164);
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(73, 20);
             this.label8.TabIndex = 73;
@@ -314,7 +318,7 @@
             // 
             this.label7.AutoSize = true;
             this.label7.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.label7.Location = new System.Drawing.Point(622, 131);
+            this.label7.Location = new System.Drawing.Point(682, 131);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(73, 20);
             this.label7.TabIndex = 72;
@@ -325,7 +329,7 @@
             // 
             this.label6.AutoSize = true;
             this.label6.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.label6.Location = new System.Drawing.Point(437, 163);
+            this.label6.Location = new System.Drawing.Point(497, 163);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(57, 20);
             this.label6.TabIndex = 71;
@@ -336,7 +340,7 @@
             // 
             this.label5.AutoSize = true;
             this.label5.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.label5.Location = new System.Drawing.Point(437, 131);
+            this.label5.Location = new System.Drawing.Point(497, 131);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(57, 20);
             this.label5.TabIndex = 70;
@@ -347,7 +351,7 @@
             // 
             this.label4.AutoSize = true;
             this.label4.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.label4.Location = new System.Drawing.Point(56, 164);
+            this.label4.Location = new System.Drawing.Point(116, 164);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(57, 20);
             this.label4.TabIndex = 69;
@@ -358,7 +362,7 @@
             // 
             this.label3.AutoSize = true;
             this.label3.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.label3.Location = new System.Drawing.Point(40, 131);
+            this.label3.Location = new System.Drawing.Point(100, 131);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(73, 20);
             this.label3.TabIndex = 68;
@@ -378,9 +382,9 @@
             // 
             // dgv0
             // 
-            this.dgv0.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
+            this.dgv0.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left)));
+            this.dgv0.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.AllCells;
             this.dgv0.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dgv0.Location = new System.Drawing.Point(14, 242);
             this.dgv0.Name = "dgv0";
@@ -420,7 +424,7 @@
             this.label16.AutoSize = true;
             this.label16.Font = new System.Drawing.Font("Meiryo UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.label16.ForeColor = System.Drawing.Color.Red;
-            this.label16.Location = new System.Drawing.Point(40, 123);
+            this.label16.Location = new System.Drawing.Point(100, 123);
             this.label16.Name = "label16";
             this.label16.Size = new System.Drawing.Size(14, 15);
             this.label16.TabIndex = 78;
@@ -432,7 +436,7 @@
             this.label13.AutoSize = true;
             this.label13.Font = new System.Drawing.Font("Meiryo UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.label13.ForeColor = System.Drawing.Color.Red;
-            this.label13.Location = new System.Drawing.Point(430, 123);
+            this.label13.Location = new System.Drawing.Point(490, 123);
             this.label13.Name = "label13";
             this.label13.Size = new System.Drawing.Size(14, 15);
             this.label13.TabIndex = 79;
@@ -444,7 +448,7 @@
             this.label12.AutoSize = true;
             this.label12.Font = new System.Drawing.Font("Meiryo UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.label12.ForeColor = System.Drawing.Color.Red;
-            this.label12.Location = new System.Drawing.Point(617, 123);
+            this.label12.Location = new System.Drawing.Point(677, 123);
             this.label12.Name = "label12";
             this.label12.Size = new System.Drawing.Size(14, 15);
             this.label12.TabIndex = 80;
@@ -456,7 +460,7 @@
             this.label14.AutoSize = true;
             this.label14.Font = new System.Drawing.Font("Meiryo UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.label14.ForeColor = System.Drawing.Color.Red;
-            this.label14.Location = new System.Drawing.Point(617, 156);
+            this.label14.Location = new System.Drawing.Point(677, 156);
             this.label14.Name = "label14";
             this.label14.Size = new System.Drawing.Size(14, 15);
             this.label14.TabIndex = 83;
@@ -468,7 +472,7 @@
             this.label15.AutoSize = true;
             this.label15.Font = new System.Drawing.Font("Meiryo UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.label15.ForeColor = System.Drawing.Color.Red;
-            this.label15.Location = new System.Drawing.Point(50, 156);
+            this.label15.Location = new System.Drawing.Point(110, 156);
             this.label15.Name = "label15";
             this.label15.Size = new System.Drawing.Size(14, 15);
             this.label15.TabIndex = 81;
@@ -496,6 +500,55 @@
             this.label17.Size = new System.Drawing.Size(0, 20);
             this.label17.TabIndex = 93;
             this.label17.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            // 
+            // cb3
+            // 
+            this.cb3.AutoSize = true;
+            this.cb3.Font = new System.Drawing.Font("Meiryo UI", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this.cb3.Location = new System.Drawing.Point(120, 194);
+            this.cb3.Name = "cb3";
+            this.cb3.Size = new System.Drawing.Size(66, 23);
+            this.cb3.TabIndex = 99;
+            this.cb3.Text = "(F)付";
+            this.cb3.UseVisualStyleBackColor = true;
+            // 
+            // button12
+            // 
+            this.button12.BackColor = System.Drawing.Color.WhiteSmoke;
+            this.button12.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
+            this.button12.FlatAppearance.BorderColor = System.Drawing.Color.LightGray;
+            this.button12.FlatAppearance.MouseDownBackColor = System.Drawing.SystemColors.ControlDarkDark;
+            this.button12.FlatAppearance.MouseOverBackColor = System.Drawing.Color.SteelBlue;
+            this.button12.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.button12.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this.button12.ForeColor = System.Drawing.SystemColors.InactiveCaptionText;
+            this.button12.Image = global::k001_shukka.Properties.Resources.ALotNo;
+            this.button12.Location = new System.Drawing.Point(18, 131);
+            this.button12.Name = "button12";
+            this.button12.Size = new System.Drawing.Size(49, 54);
+            this.button12.TabIndex = 98;
+            this.button12.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
+            this.button12.UseVisualStyleBackColor = false;
+            this.button12.Click += new System.EventHandler(this.Ctrl_Click);
+            // 
+            // button11
+            // 
+            this.button11.BackColor = System.Drawing.Color.WhiteSmoke;
+            this.button11.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
+            this.button11.FlatAppearance.BorderColor = System.Drawing.Color.LightGray;
+            this.button11.FlatAppearance.MouseDownBackColor = System.Drawing.SystemColors.ControlDarkDark;
+            this.button11.FlatAppearance.MouseOverBackColor = System.Drawing.Color.SteelBlue;
+            this.button11.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.button11.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this.button11.ForeColor = System.Drawing.SystemColors.InactiveCaptionText;
+            this.button11.Image = global::k001_shukka.Properties.Resources.shipvote;
+            this.button11.Location = new System.Drawing.Point(826, 33);
+            this.button11.Name = "button11";
+            this.button11.Size = new System.Drawing.Size(60, 57);
+            this.button11.TabIndex = 97;
+            this.button11.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
+            this.button11.UseVisualStyleBackColor = false;
+            this.button11.Click += new System.EventHandler(this.Ctrl_Click);
             // 
             // button10
             // 
@@ -548,7 +601,7 @@
             this.button8.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.button8.ForeColor = System.Drawing.SystemColors.InactiveCaptionText;
             this.button8.Image = global::k001_shukka.Properties.Resources.SC_IN;
-            this.button8.Location = new System.Drawing.Point(523, 33);
+            this.button8.Location = new System.Drawing.Point(518, 33);
             this.button8.Name = "button8";
             this.button8.Size = new System.Drawing.Size(60, 57);
             this.button8.TabIndex = 94;
@@ -567,7 +620,7 @@
             this.button7.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.button7.ForeColor = System.Drawing.SystemColors.InactiveCaptionText;
             this.button7.Image = global::k001_shukka.Properties.Resources.container;
-            this.button7.Location = new System.Drawing.Point(737, 33);
+            this.button7.Location = new System.Drawing.Point(749, 33);
             this.button7.Name = "button7";
             this.button7.Size = new System.Drawing.Size(60, 57);
             this.button7.TabIndex = 92;
@@ -624,7 +677,7 @@
             this.button4.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.button4.ForeColor = System.Drawing.SystemColors.InactiveCaptionText;
             this.button4.Image = global::k001_shukka.Properties.Resources.print_vote;
-            this.button4.Location = new System.Drawing.Point(666, 33);
+            this.button4.Location = new System.Drawing.Point(672, 33);
             this.button4.Name = "button4";
             this.button4.Size = new System.Drawing.Size(60, 57);
             this.button4.TabIndex = 60;
@@ -704,7 +757,7 @@
             this.button1.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.button1.ForeColor = System.Drawing.SystemColors.InactiveCaptionText;
             this.button1.Image = global::k001_shukka.Properties.Resources.decide;
-            this.button1.Location = new System.Drawing.Point(808, 32);
+            this.button1.Location = new System.Drawing.Point(903, 33);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(60, 57);
             this.button1.TabIndex = 61;
@@ -717,7 +770,10 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoValidate = System.Windows.Forms.AutoValidate.EnablePreventFocusChange;
-            this.ClientSize = new System.Drawing.Size(883, 691);
+            this.ClientSize = new System.Drawing.Size(979, 691);
+            this.Controls.Add(this.cb3);
+            this.Controls.Add(this.button12);
+            this.Controls.Add(this.button11);
             this.Controls.Add(this.button10);
             this.Controls.Add(this.button9);
             this.Controls.Add(this.button8);
@@ -831,5 +887,8 @@
         private System.Windows.Forms.Button button8;
         private System.Windows.Forms.Button button9;
         private System.Windows.Forms.Button button10;
+        private System.Windows.Forms.Button button11;
+        private System.Windows.Forms.Button button12;
+        private System.Windows.Forms.CheckBox cb3;
     }
 }

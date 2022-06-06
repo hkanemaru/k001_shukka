@@ -18,6 +18,8 @@ namespace k001_shukka
         public string[] ReturnValue; // 親フォームに返す戻り値
         private bool bPHide = true;  // 親フォームを隠す = True
         ToolTip ToolTip1;
+        private string sVal = string.Empty; // 引数
+        private string sPre = string.Empty;
         #endregion
         public F05_Dialog(params string[] argVals)
         {
@@ -42,7 +44,7 @@ namespace k001_shukka
             // タイトルバー表示設定
             this.Text = string.Format("【{0}】 {1}"
                 , this.Name
-                , DEF_CON.prjName + " " + DEF_CON.verString);
+                , DEF_CON.prjName + " " + DEF_CON.GetVersion());
             #endregion
 
             #region dgv設定のここでバインド
@@ -75,24 +77,44 @@ namespace k001_shukka
             SetTooltip();
             // argVals[0] jdnno , 1]linno
             string s = string.Empty;
-            if(argVals.Length > 2)
+            if (argVals[0] == "memo")
             {
-                label2.Text = "";
-                label1.Text = argVals[0];
-                s = argVals[2];
-                textBox1.Width = 200;
-                this.Width = 500;
+                label1.Text = "出荷情報備考：";
                 groupBox1.Visible = false;
+                // 備考が既に登録されていた場合はその文字を表示
+                if(argVals[1].Length > 0)
+                {
+                    string sSql = string.Format(
+                        "SELECT SUB_SEQ, CONTENT FROM t_memo WHERE SEQ = {0};"
+                        ,argVals[1]);
+                    mydb.kyDb con = new mydb.kyDb();
+                    con.GetData(sSql, DEF_CON.Constr());
+                    s = con.ds.Tables[0].Rows[0][1].ToString();
+                    sPre = s;
+                    sVal = con.ds.Tables[0].Rows[0][0].ToString();
+                }
             }
             else
             {
-                string sSql = string.Format(
-                "SELECT LINCM FROM sc_juchu "
-                + "WHERE JDNNO = '{0}' AND LINNO = '{1}';"
-                , argVals[0], argVals[1]);
-                mydb.kyDb con = new mydb.kyDb();
-                con.GetData(sSql, DEF_CON.Constr());
-                s = con.ds.Tables[0].Rows[0][0].ToString();
+                if (argVals.Length > 2)
+                {
+                    label2.Text = "";
+                    label1.Text = argVals[0];
+                    s = argVals[2];
+                    textBox1.Width = 200;
+                    this.Width = 500;
+                    groupBox1.Visible = false;
+                }
+                else
+                {
+                    string sSql = string.Format(
+                    "SELECT LINCM FROM sc_juchu "
+                    + "WHERE JDNNO = '{0}' AND LINNO = '{1}';"
+                    , argVals[0], argVals[1]);
+                    mydb.kyDb con = new mydb.kyDb();
+                    con.GetData(sSql, DEF_CON.Constr());
+                    s = con.ds.Tables[0].Rows[0][0].ToString();
+                }
             }
             
             textBox1.Text = s;
@@ -151,12 +173,19 @@ namespace k001_shukka
         // 1) btnClose  -> 2) -> 3) -> 2) -> 1) -> ShowMiniForm.f.showdialog
         private void btnClose_Click(object sender, EventArgs e)
         {
-            if (argVals.Length > 2) this.ReturnValue = new string[] { textBox1.Text };
+            if(argVals[0] == "memo")
+            {
+                if (sPre != textBox1.Text) this.ReturnValue = new string[] { textBox1.Text, sVal };
+            }
             else
             {
-                string s = "2";
-                if (rb1.Checked) s = "1";
-                this.ReturnValue = new string[] { s };
+                if (argVals.Length > 2) this.ReturnValue = new string[] { textBox1.Text };
+                else
+                {
+                    string s = "2";
+                    if (rb1.Checked) s = "1";
+                    this.ReturnValue = new string[] { s };
+                }
             }
             
             closing();

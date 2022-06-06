@@ -16,6 +16,7 @@ namespace k001_shukka
         #region フォーム変数
         private bool bClose = true;
         string AppID;
+        string sFRMID = string.Empty; // この値でどのフォームを開くか決める
         #endregion 
         public F00()
         {
@@ -30,7 +31,7 @@ namespace k001_shukka
                 string sID = string.Empty;
                 string sDBID = string.Empty;
                 DateTime dDate = DateTime.Today;
-                string sFRMID = string.Empty; // この値でどのフォームを開くか決める
+                
                 using (System.IO.StreamReader sr =
                         new System.IO.StreamReader(iniFL, System.Text.Encoding.GetEncoding("Shift_JIS")))
                 {
@@ -88,13 +89,27 @@ namespace k001_shukka
 
         private void button1_Click(object sender, EventArgs e)
         {
-            OpenFrm();
+            string[] sSnd = { AppID };
+            _ = F01_LIST.ShowMiniForm(this, sSnd);
         }
         private void OpenFrm()
         {
             string[] sSnd = { AppID };
-            string[] sRcv = F01_LIST.ShowMiniForm(this, sSnd);
-            if (sRcv[0].Length == 0) closing();
+            
+            // 業務の出荷業務から
+            if(AppID == "2" && sFRMID != "F14") _ = F01_LIST.ShowMiniForm(this, sSnd);
+            if(AppID == "100")
+            {
+                sSnd = new string[] { sFRMID };  // sFRMIDは出荷SEQ
+                _ = F09_Permit.ShowMiniForm(this, sSnd);
+            }
+            if(sFRMID == "F14")
+            {
+                sSnd = new string[] { AppID, sFRMID };  // sFRMIDは出荷SEQ
+                _ = F14_SHIP_PERMIT_LIST.ShowMiniForm(this, sSnd);
+            }
+            //if (sRcv[0].Length == 0) closing();
+            closing();
         }
         private void FRM_Closing(object sender, FormClosingEventArgs e)
         {
@@ -116,6 +131,12 @@ namespace k001_shukka
             //    this.ReturnValue = new string[] { "戻り値です" };
             //}
             this.Close();
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            string[] Snd1 = new string[] { AppID, sFRMID };  // sFRMIDは出荷SEQ
+            _ = F14_SHIP_PERMIT_LIST.ShowMiniForm(this, Snd1);
         }
     }
 }

@@ -25,7 +25,7 @@
     <MapFileExtensions>true</MapFileExtensions>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>publish.htm</WebPage>
-    <ApplicationRevision>55</ApplicationRevision>
+    <ApplicationRevision>113</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -54,10 +54,10 @@
     <ApplicationIcon>BA.ico</ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestCertificateThumbprint>B560BE4CE041A74C4643408A4252881B87C310B6</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>6AE33A3D2D455F3548300B27F4F3D3A8632B91D4</ManifestCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestKeyFile>dispatch_control_TemporaryKey.pfx</ManifestKeyFile>
+    <ManifestKeyFile>k001_shukka_TemporaryKey.pfx</ManifestKeyFile>
   </PropertyGroup>
   <PropertyGroup>
     <GenerateManifests>true</GenerateManifests>
@@ -175,6 +175,42 @@
     <Compile Include="F08_ChkShipment.Designer.cs">
       <DependentUpon>F08_ChkShipment.cs</DependentUpon>
     </Compile>
+    <Compile Include="F09_Permit.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="F09_Permit.Designer.cs">
+      <DependentUpon>F09_Permit.cs</DependentUpon>
+    </Compile>
+    <Compile Include="F10_ContLotList.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="F10_ContLotList.Designer.cs">
+      <DependentUpon>F10_ContLotList.cs</DependentUpon>
+    </Compile>
+    <Compile Include="F11_CLotBC.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="F11_CLotBC.Designer.cs">
+      <DependentUpon>F11_CLotBC.cs</DependentUpon>
+    </Compile>
+    <Compile Include="F12_SHIP_SETTING.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="F12_SHIP_SETTING.Designer.cs">
+      <DependentUpon>F12_SHIP_SETTING.cs</DependentUpon>
+    </Compile>
+    <Compile Include="F13_ALotCrt.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="F13_ALotCrt.Designer.cs">
+      <DependentUpon>F13_ALotCrt.cs</DependentUpon>
+    </Compile>
+    <Compile Include="F14_SHIP_PERMIT_LIST.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="F14_SHIP_PERMIT_LIST.Designer.cs">
+      <DependentUpon>F14_SHIP_PERMIT_LIST.cs</DependentUpon>
+    </Compile>
     <Compile Include="fn.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -206,6 +242,27 @@
     <EmbeddedResource Include="F08_ChkShipment.resx">
       <DependentUpon>F08_ChkShipment.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="F09_Permit.resx">
+      <DependentUpon>F09_Permit.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="F10_ContLotList.resx">
+      <DependentUpon>F10_ContLotList.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="F11_CLotBC.resx">
+      <DependentUpon>F11_CLotBC.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="F12_SHIP_SETTING.resx">
+      <DependentUpon>F12_SHIP_SETTING.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="F13_ALotCrt.resx">
+      <DependentUpon>F13_ALotCrt.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="F14_SHIP_PERMIT_LIST.resx">
+      <DependentUpon>F14_SHIP_PERMIT_LIST.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -217,6 +274,7 @@
       <DesignTime>True</DesignTime>
     </Compile>
     <None Include="dispatch_control_TemporaryKey.pfx" />
+    <None Include="k001_shukka_TemporaryKey.pfx" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -278,6 +336,16 @@
     <None Include="Resources\stamp.png" />
     <None Include="Resources\souko[1].png" />
     <None Include="Resources\ERRFILE.png" />
+    <None Include="Resources\inspect_list.png" />
+    <None Include="Resources\erFile.png" />
+    <None Include="Resources\approval.png" />
+    <None Include="Resources\hopper.png" />
+    <None Include="Resources\bikou2.png" />
+    <None Include="Resources\QR.png" />
+    <None Include="Resources\barcode.png" />
+    <None Include="Resources\shipvote.png" />
+    <None Include="Resources\AutoNum.png" />
+    <None Include="Resources\ALotNo.png" />
     <Content Include="tetra.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

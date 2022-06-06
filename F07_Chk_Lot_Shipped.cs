@@ -42,7 +42,7 @@ namespace k001_shukka
             // タイトルバー表示設定
             this.Text = string.Format("【{0}】 {1}"
                 , this.Name
-                , DEF_CON.prjName + " " + DEF_CON.verString);
+                , DEF_CON.prjName + " " + DEF_CON.GetVersion());
             #endregion
 
             #region dgv設定のここでバインド

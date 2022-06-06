@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(F04_ChkShipment));
             this.dgv0 = new System.Windows.Forms.DataGridView();
             this.lblTtitle = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
@@ -180,6 +181,7 @@
             this.Controls.Add(this.label2);
             this.Controls.Add(this.dgv1);
             this.Font = new System.Drawing.Font("Meiryo UI", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.Name = "F04_ChkShipment";
             this.Text = "F04_ChkShipment";

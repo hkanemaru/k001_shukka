@@ -124,20 +124,38 @@
   <data name="list3" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\list3.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="inspect_list" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\inspect_list.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="dlvry_note1" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\dlvry_note1.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="ERRFILE" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\ERRFILE.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="ERRFILE1" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\ERRFILE.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="print_list" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\print_list.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="back" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\back.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="hopper" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\hopper.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="AutoNum" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\AutoNum.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="excel" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\excel.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="csr_previous2" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\csr_previous2.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="barcode" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\barcode.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="delivery_note" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\delivery_note.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -148,8 +166,8 @@
   <data name="print_vote" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\print_vote.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="back" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\back.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="Revive" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\Revive.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="dispCng" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\dispCng.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -157,8 +175,17 @@
   <data name="exclamn" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\exclamn.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
+  <data name="bikou2" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\bikou2.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="container" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\container.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="approval" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\approval.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="erFile" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\erFile.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="print" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\print1.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -190,8 +217,14 @@
   <data name="Verification" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\Verification.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="Revive" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\Revive.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="QR" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\QR.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="shipvote" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\shipvote.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="compa" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\compa.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="calender" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\calender.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -211,10 +244,7 @@
   <data name="reflesh" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\reflesh.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="compa" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\compa.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="ERRFILE1" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\ERRFILE.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="ALotNo" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\ALotNo.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
 </root>

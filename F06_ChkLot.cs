@@ -1,13 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
+﻿using Oracle.ManagedDataAccess.Client;
+using System;
 using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using Oracle.ManagedDataAccess.Client;
 
 namespace k001_shukka
 {
@@ -42,7 +36,7 @@ namespace k001_shukka
             // タイトルバー表示設定
             this.Text = string.Format("【{0}】 {1}"
                 , this.Name
-                , DEF_CON.prjName + " " + DEF_CON.verString);
+                , DEF_CON.prjName + " " + DEF_CON.GetVersion());
             #endregion
 
             #region dgv設定のここでバインド
@@ -168,7 +162,7 @@ namespace k001_shukka
                 #region sel内容
 
                 #endregion
-                int[] iw;
+                //int[] iw;
                 int[] icol;
                 // 列幅を整える
                 //icol = new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
