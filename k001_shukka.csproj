@@ -13,7 +13,7 @@
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
     <IsWebBootstrapper>false</IsWebBootstrapper>
-    <PublishUrl>\\10.100.10.20\tmp\k001_shukka\</PublishUrl>
+    <PublishUrl>\\10.100.10.24\store\k001_shukka\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Unc</InstallFrom>
     <UpdateEnabled>true</UpdateEnabled>
@@ -25,8 +25,8 @@
     <MapFileExtensions>true</MapFileExtensions>
     <CreateWebPageOnPublish>true</CreateWebPageOnPublish>
     <WebPage>publish.htm</WebPage>
-    <ApplicationRevision>113</ApplicationRevision>
-    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <ApplicationRevision>1</ApplicationRevision>
+    <ApplicationVersion>1.0.1.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -63,7 +63,7 @@
     <GenerateManifests>true</GenerateManifests>
   </PropertyGroup>
   <PropertyGroup>
-    <SignManifests>true</SignManifests>
+    <SignManifests>false</SignManifests>
   </PropertyGroup>
   <PropertyGroup>
     <StartupObject />
@@ -84,6 +84,9 @@
     <Reference Include="itextsharp, Version=5.5.13.2, Culture=neutral, PublicKeyToken=8354ae6d2174ddca, processorArchitecture=MSIL">
       <HintPath>packages\iTextSharp.5.5.13.2\lib\itextsharp.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.Office.Interop.Excel, Version=15.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c, processorArchitecture=MSIL">
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </Reference>
     <Reference Include="mydb">
       <HintPath>D:\document\Visual Studio 2015\Projects\mydb\mydb\bin\Debug\mydb.dll</HintPath>
     </Reference>
@@ -96,6 +99,9 @@
     <Reference Include="PresentationCore" />
     <Reference Include="promag_frm">
       <HintPath>D:\document\Visual Studio 2015\Projects\promag_frm\promag_frm\bin\Debug\promag_frm.dll</HintPath>
+    </Reference>
+    <Reference Include="promag_frm2">
+      <HintPath>..\promag_frm2\bin\Debug\promag_frm2.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -211,6 +217,18 @@
     <Compile Include="F14_SHIP_PERMIT_LIST.Designer.cs">
       <DependentUpon>F14_SHIP_PERMIT_LIST.cs</DependentUpon>
     </Compile>
+    <Compile Include="F15_Receipt.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="F15_Receipt.Designer.cs">
+      <DependentUpon>F15_Receipt.cs</DependentUpon>
+    </Compile>
+    <Compile Include="F16_ReciptList.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="F16_ReciptList.Designer.cs">
+      <DependentUpon>F16_ReciptList.cs</DependentUpon>
+    </Compile>
     <Compile Include="fn.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -262,6 +280,12 @@
     </EmbeddedResource>
     <EmbeddedResource Include="F14_SHIP_PERMIT_LIST.resx">
       <DependentUpon>F14_SHIP_PERMIT_LIST.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="F15_Receipt.resx">
+      <DependentUpon>F15_Receipt.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="F16_ReciptList.resx">
+      <DependentUpon>F16_ReciptList.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -346,6 +370,9 @@
     <None Include="Resources\shipvote.png" />
     <None Include="Resources\AutoNum.png" />
     <None Include="Resources\ALotNo.png" />
+    <None Include="Resources\gChange.png" />
+    <None Include="Resources\GRS.png" />
+    <None Include="Resources\del_rec.png" />
     <Content Include="tetra.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

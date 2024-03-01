@@ -309,7 +309,7 @@ namespace k001_shukka
 
         private static string sGetList(string sSEQ)
         {
-            return string.Format(
+            return 
                 "SELECT"
                  + " tmp.LOT_NO '生産時LotNo.'"          //0
                  + " ,al.LOT_NO '出荷LotNo.'"         //1
@@ -319,7 +319,13 @@ namespace k001_shukka
                  + " SELECT"
                  + " p.LOT_NO"
                  + " FROM kyoei.t_product p"
-                 + " WHERE p.SHIP_SEQ = {0}"
+                 + $" WHERE p.SHIP_SEQ = {sSEQ}"
+                 + " UNION"
+                 + " SELECT"
+                 + " p.LOT_NO "
+                 + " FROM"
+                 + " kyoei.t_t_product p "
+                 + $" WHERE p.SHIP_SEQ = {sSEQ}"
                  + " ) tmp"
                  + " LEFT JOIN kyoei.t_another_lot al"
                  + " ON tmp.LOT_NO = al.BASE_LOT_NO"
@@ -327,8 +333,7 @@ namespace k001_shukka
                  + " SUBSTRING_INDEX(tmp.LOT_NO, '-',1)"
                  + " ,SUBSTRING_INDEX(tmp.LOT_NO, '-',2)"
                  + " ,CAST(SUBSTRING_INDEX(tmp.LOT_NO, '-',-1) AS UNSIGNED)"
-                 + ";"
-                , sSEQ);
+                 + ";";
         }
 
         #region dgvクリック

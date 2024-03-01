@@ -1,11 +1,16 @@
-﻿using System.Deployment.Application;
+﻿using System;
+using System.Collections.Generic;
+using System.Deployment.Application;
+using System.IO;
 
 namespace k001_shukka
 {
     class DEF_CON
     {
         //public static string verString = "Ver.0.30 21/08/23";
-        public static string prjName = "gyom";
+        
+        public static string prjName = "k001_shukka";
+        public static string exepath = "k001_shukka.exe";
         public static string sHistry =
 @"
 1.00 F01ロット明細でコンテナ対応
@@ -64,19 +69,27 @@ Ver.0.01 2020/12/03 リリース
         public static string FLSvrSub = @"\\10.100.10.20\share\tetra\";
 
         public static string appInf = @"C:\tetra\appInf.ini";
+        public static string FLSvrXls = @"\\10.100.10.20\share\tetra\xls\";
 
 
         public static int[] BLUE = { 0, 98, 150 };
         public static int[] LIGHT_BLUE = { 220, 240, 255 };
 
+        public static int[] MNBLUE = { 35, 42, 70 };
+        public static int[] LLPINK = { 246, 218, 222 };
+
         public static int[] DBLUE = { 0, 37, 115 };
+        public static int[] STLBLUE = { 70, 130, 180 };
+
         public static int[] LBLUE = { 225, 240, 255 };
+
 
         public static int[] DGreen = { 52, 86, 86 };
         public static int[] LGreen = { 217, 236, 198 };
 
         public static int[] DGray = { 24, 24, 24 };
         public static int[] LGray = { 216, 216, 216 };
+        public static int[] LLGray = { 240, 240, 240 };
 
         public static int[] ORANGE = { 255, 170, 37 };
         public static int[] YELLOW = { 255, 255, 142 };
@@ -87,6 +100,11 @@ Ver.0.01 2020/12/03 リリース
 
         public static int[] LPINK = { 255, 236, 255 };
         public static int[] NAVY2 = { 0, 0, 128 };
+
+        public static int[] Miziro = { 41, 200, 255 };
+        public static int[] Midori = { 135, 191, 97 };
+        public static int[] DLimeG = { 112, 173, 71 };
+        public static int[] Orange = { 255, 176, 16 };
 
         public static string[] ShipVoteRePrintable
           = {"k0111", "k0119", "k0148", "k0149", "k0193", "k0210", "k0234", "k0269"
@@ -122,6 +140,69 @@ Ver.0.01 2020/12/03 リリース
             );
         }
 
+        /// <summary>
+        /// アセンブリファイルのビルド日時を取得する。
+        /// </summary>
+        /// <param name="asmPath">exeやdll等のアセンブリファイルのパス。
+        /// <returns>取得したビルド日時。</returns>
+        public static DateTime GetBuildDateTime(string asmPath)
+        {
+            // ファイルオープン
+            using (FileStream fs = new FileStream(asmPath, FileMode.Open, FileAccess.Read))
+            using (BinaryReader br = new BinaryReader(fs))
+            {
+                // まずはシグネチャを探す
+                byte[] signature = { 0x50, 0x45, 0x00, 0x00 };// "PE\0\0"
+                List<byte> bytes = new List<byte>();
+                while (true)
+                {
+                    bytes.Add(br.ReadByte());
+
+                    if (bytes.Count < signature.Length)
+                    {
+                        continue;
+                    }
+
+                    while (signature.Length < bytes.Count)
+                    {
+                        bytes.RemoveAt(0);
+                    }
+
+                    bool isMatch = true;
+                    for (int i = 0; i < signature.Length; i++)
+                    {
+                        if (signature[i] != bytes[i])
+                        {
+                            isMatch = false;
+                            break;
+                        }
+                    }
+                    if (isMatch)
+                    {
+                        break;
+                    }
+                }
+
+                // COFFファイルヘッダを読み取る
+                var coff = new
+                {
+                    Machine = br.ReadBytes(2),
+                    NumberOfSections = br.ReadBytes(2),
+                    TimeDateStamp = br.ReadBytes(4),
+                    PointerToSymbolTable = br.ReadBytes(4),
+                    NumberOfSymbols = br.ReadBytes(4),
+                    SizeOfOptionalHeader = br.ReadBytes(2),
+                    Characteristics = br.ReadBytes(2),
+                };
+
+                // タイムスタンプをDateTimeに変換
+                int timestamp = BitConverter.ToInt32(coff.TimeDateStamp, 0);
+                DateTime baseDateTime = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                DateTime buildDateTimeUtc = baseDateTime.AddSeconds(timestamp);
+                DateTime buildDateTimeLocal = buildDateTimeUtc.ToLocalTime();
+                return buildDateTimeLocal;
+            }
+        }
         /*
          try
          {

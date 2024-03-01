@@ -213,6 +213,16 @@ namespace k001_shukka.Properties {
         /// <summary>
         ///   型 System.Drawing.Bitmap のローカライズされたリソースを検索します。
         /// </summary>
+        internal static System.Drawing.Bitmap del_rec {
+            get {
+                object obj = ResourceManager.GetObject("del_rec", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   型 System.Drawing.Bitmap のローカライズされたリソースを検索します。
+        /// </summary>
         internal static System.Drawing.Bitmap del_red {
             get {
                 object obj = ResourceManager.GetObject("del_red", resourceCulture);
@@ -313,9 +323,29 @@ namespace k001_shukka.Properties {
         /// <summary>
         ///   型 System.Drawing.Bitmap のローカライズされたリソースを検索します。
         /// </summary>
+        internal static System.Drawing.Bitmap gChange {
+            get {
+                object obj = ResourceManager.GetObject("gChange", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   型 System.Drawing.Bitmap のローカライズされたリソースを検索します。
+        /// </summary>
         internal static System.Drawing.Bitmap goodjob {
             get {
                 object obj = ResourceManager.GetObject("goodjob", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   型 System.Drawing.Bitmap のローカライズされたリソースを検索します。
+        /// </summary>
+        internal static System.Drawing.Bitmap GRS {
+            get {
+                object obj = ResourceManager.GetObject("GRS", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

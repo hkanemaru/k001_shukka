@@ -25,6 +25,13 @@ namespace k001_shukka
         private void F00_Load(object sender, EventArgs e)
         {
             string iniFL = @"C:\tetra\usr.ini";
+
+            string scap = string.Empty;
+            if (usr.iDB == 1) scap += " TestDB: ";
+            scap += DateTime.Now.ToString("yy/MM/dd HH:mm");
+            scap += " " + usr.name;
+            label1.Text = scap;
+            label1.Left = this.Width - label1.Width;
             // 開いてエラーが発生したら戾る
             try
             {
@@ -95,9 +102,11 @@ namespace k001_shukka
         private void OpenFrm()
         {
             string[] sSnd = { AppID };
-            
+
+            string ver = DEF_CON.GetVersion();
+            if (ver.Length == 0) return;
             // 業務の出荷業務から
-            if(AppID == "2" && sFRMID != "F14") _ = F01_LIST.ShowMiniForm(this, sSnd);
+            if(AppID == "2" && sFRMID != "F14" && sFRMID != "F15") _ = F01_LIST.ShowMiniForm(this, sSnd);
             if(AppID == "100")
             {
                 sSnd = new string[] { sFRMID };  // sFRMIDは出荷SEQ
@@ -107,6 +116,10 @@ namespace k001_shukka
             {
                 sSnd = new string[] { AppID, sFRMID };  // sFRMIDは出荷SEQ
                 _ = F14_SHIP_PERMIT_LIST.ShowMiniForm(this, sSnd);
+            }
+            if (sFRMID == "F15")
+            {
+                _ = F16_ReciptList.ShowMiniForm(this, sSnd);
             }
             //if (sRcv[0].Length == 0) closing();
             closing();
@@ -137,6 +150,26 @@ namespace k001_shukka
         {
             string[] Snd1 = new string[] { AppID, sFRMID };  // sFRMIDは出荷SEQ
             _ = F14_SHIP_PERMIT_LIST.ShowMiniForm(this, Snd1);
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            int i = 0;
+            if (usr.iDB == i) i = 1;
+            usr.iDB = i;
+            string scap = string.Empty;
+            if (usr.iDB == 1) scap += " TestDB: ";
+            scap += DateTime.Now.ToString("yy/MM/dd HH:mm");
+            scap += " " + usr.name;
+            label1.Text = scap;
+            label1.Left = this.Width - label1.Width;
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            string[] snd = { AppID };
+            _ = F16_ReciptList.ShowMiniForm(this, snd);
+            // _ = F15_Receipt.ShowMiniForm(this, snd);
         }
     }
 }

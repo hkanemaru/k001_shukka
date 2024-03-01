@@ -4,18 +4,18 @@ using System.Windows.Forms;
 
 namespace k001_shukka
 {
-    public partial class F14_SHIP_PERMIT_LIST : Form
+    public partial class F16_ReciptList : Form
     {
         #region フォーム変数
         private bool bClose = true;
         private string[] argVals;    // 親フォームから受け取る引数
         public string[] ReturnValue; // 親フォームに返す戻り値
-        private bool bPHide = true;  // 親フォームを隠す = True
         ToolTip ToolTip1;
         private Boolean bdgvCellClk = false; // dgvがクリックされた際にデータ欄だとtrue
-        private string sSD = string.Empty;
-        private string sED = string.Empty;
-        private int iDisp = 0;
+        private DateTime _sd;
+        private DateTime _ed;
+
+
         private bool bLoad = false;
         private string[] ColNM;
         private int[] ColWID;
@@ -27,9 +27,11 @@ namespace k001_shukka
         int[] iCols;
         int[] iWs;
 
+        private int _c = -1;
+        
         #endregion
 
-        public F14_SHIP_PERMIT_LIST(params string[] argVals)
+        public F16_ReciptList(params string[] argVals)
         {
             // 親フォームから受け取ったデータをこのインスタンスメンバに格納
             this.argVals = argVals;
@@ -45,7 +47,7 @@ namespace k001_shukka
         static public string[] ShowMiniForm(Form frm, params string[] s)
         {
             // params s >> 0= appID, 1 = usr.id, 2 = iDB
-            F14_SHIP_PERMIT_LIST f = new F14_SHIP_PERMIT_LIST(s);
+            F16_ReciptList f = new F16_ReciptList(s);
             f.ShowDialog(frm);
 
             string[] receiveText = f.ReturnValue; // -- ①
@@ -55,54 +57,75 @@ namespace k001_shukka
 
         private void FRM_Load(object sender, EventArgs e)
         {
+            // _lot = argVals[0];
             // 登録用
             SetTooltip();
 
             //■■■ 画面の和名
-            string sTitle = "出荷承認依頼一覧";
-            #region 画面の状態を設定
-            // ■■■ 親フォームを隠す設定 true => 隠す　default = 隠す。
-            //bPHide = false; // 隠さない
-            // 画面サイズ変更の禁止
-            //this.MaximizeBox = false;
+            string sTitle = "受入確認一覧";
 
+            #region 画面のキャプション設定
             lblCaption.Text = fn.frmTxt(sTitle);
-            string s = string.Empty; ;
-            if (usr.iDB == 1) s += " TestDB: ";
-            s += DateTime.Now.ToString("yy/MM/dd HH:mm");
-            s += " " + usr.name;
-            lblRCaption.Text = s;
-            // タイトルバー表示設定
-            this.Text = string.Format("【{0}】 {1}"
-                , this.Name
-                , DEF_CON.prjName + " " + DEF_CON.GetVersion());
+
+            DateTime bldTime = DEF_CON.GetBuildDateTime(DEF_CON.exepath);
+            this.Text = $"【{this.Name}】{DEF_CON.prjName} {bldTime:yyyy'/'MM'/'dd}";
+            string scap = string.Empty;
+            if (usr.iDB == 1) scap += " TestDB: ";
+            scap += DateTime.Now.ToString("yy/MM/dd HH:mm");
+            scap += " " + usr.name;
+            lblRCaption.Text = scap;
             #endregion
 
             #region dgv設定のここでバインド
             dgv0.DataSource = bs0;
             #endregion
 
-            // 開いた元フォームを隠す設定
-            if (bPHide) this.Owner.Hide();
 
             // リスト抽出　>> 初期設定は直近1カ月
-            sSD = DateTime.Today.AddDays(-14).ToShortDateString();
-            sED = DateTime.Today.AddDays(60).ToShortDateString();
-            label1.Text = string.Format("期間：{0} ~ {1}", sSD, sED);
+            _ed = DateTime.Today.AddDays(1);
+            _sd = _ed.AddMonths(-1);
+
+            label1.Text = $"期間：{_sd:yy/MM/dd} ~ {_ed:yy/MM/dd}";
+            // 固定列 = _c を設定
+            _c = 1;
             GetData(dgv0, bs0, sGetList()); // 一覧更新
+
+            button1.Left = this.Width - button1.Width - 20;
+            lblRCaption.Left = button1.Left - lblRCaption.Width;
         }
 
         private void ChgParameter()
         {
-            if (iDisp == 0)
+            string s =
+                "確認日,120,1,-1,0;"
+                + "代表LotNo,150,1,-1,0;"
+                + "製造元,150,1,-1,0;"
+                + "確認数,60,1,-1,0;"
+                + "受入番号,80,-1,-1,0;"
+                + "確認者,120,1,-1,0;"
+                + "ilcn,0,-1,-1,1;";
+            if (s.Substring(s.Length - 1) == ";") s = s.Substring(0, s.Length - 1);
+            string[] lines = s.Split(';');
+            int icount = lines.GetLength(0);
+            string[,] values = new string[icount, 5];
+            for (int i = 0; i < icount; i++)
             {
-                // ColAli  書式　1 LEFT 0CENTER,-1RIGHT
-                // ColZezo 書式 -1 何もなし、0 小数点0, 1=小数点１ 2小数点2
-                ColNM = new string[] { "SEQ", "出荷日", "納品日", "出荷先", "品名", "出荷数量", "依頼日", "依頼者", "業務承認", "業務承認者", "業務承認日", "品管承認", "品管承認者", "品管承認日", "製造承認", "製造承認者", "製造承認日" };
-                ColWID = new int[] { 50, 90, 90, 200, 150, 100, 60, 60, 50, 60, 60, 50, 60, 60, 50, 60, 60 };
-                ColAli = new int[] { -1, 1, 1, 1, 1, -1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1 };
-                ColZezo = new int[] { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
-                ColInV = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                string[] clm = lines[i].Split(',');
+                for (int c = 0; c < clm.GetLength(0); c++) values[i, c] = clm[c];
+            }
+
+            ColNM = new string[icount];
+            ColWID = new int[icount];
+            ColAli = new int[icount];
+            ColZezo = new int[icount];
+            ColInV = new int[icount];
+            for (int i = 0; i < icount; i++)
+            {
+                ColNM[i] = values[i, 0].Replace(" ", "");
+                ColWID[i] = int.Parse(values[i, 1].Replace(" ", ""));
+                ColAli[i] = int.Parse(values[i, 2].Replace(" ", ""));
+                ColZezo[i] = int.Parse(values[i, 3].Replace(" ", ""));
+                ColInV[i] = int.Parse(values[i, 4].Replace(" ", ""));
             }
         }
 
@@ -136,7 +159,7 @@ namespace k001_shukka
 
         private void SetDgvF(DataGridView dgvTarget, DataGridView dgvSelf)
         {
-            // フィルター項目を引き継ぐ
+            #region フィルター項目を引き継ぐ 前準備
             string sVals = string.Empty;
             string sCols = string.Empty;
             string sCols1 = string.Empty;
@@ -150,6 +173,7 @@ namespace k001_shukka
                     sCols += "," + dgvSelf.Columns[i].HeaderText;
                 }
             }
+            #endregion
 
             dgvSelf.Columns.Clear();
             dgvSelf.Rows.Clear();
@@ -170,7 +194,7 @@ namespace k001_shukka
             dgvSelf.ClearSelection();
             SetWDgvF(dgv0, dgvF);
 
-            // フィルター項目を引き継ぐ
+            #region  フィルター項目を引き継ぐ 実処理
             if (dgvSelf.Rows.Count > 0)
             {
                 for (int i = 0; i < dgvSelf.Columns.Count; i++)
@@ -188,6 +212,7 @@ namespace k001_shukka
                     }
                 }
             }
+            #endregion
         }
 
         private void SetWDgvF(DataGridView dgvTarget, DataGridView dgvSelf)
@@ -199,14 +224,15 @@ namespace k001_shukka
                 else dgvSelf.Columns[i].Visible = false;
             }
             if (dgvTarget.Height - 50 - (40 * dgvTarget.Rows.Count) < 0) dgvSelf.Width = dgvTarget.Width - 20;
-            dgvSelf.Columns[1].Frozen = true;
+            else dgvSelf.Width = dgvTarget.Width;
+            if (_c >= 0) dgvSelf.Columns[_c].Frozen = true;
         }
 
         private void dgvF_CellValueChanged(object sender, DataGridViewCellEventArgs e)
         {
             DataGridView dgv = (DataGridView)sender;
             string s = string.Empty;
-            string s1 = string.Empty;
+            string s1;
             // ターゲットとなるdgv= dgv0とする。
             string sFil = string.Empty;
             // ColAli
@@ -223,11 +249,11 @@ namespace k001_shukka
                 {
                     if (ColAli[iCols[i]] >= 0)
                     {
-                        if (s1 == "0")
+                        if (s1 == "=\"\"")
                         {
                             sFil += string.Format("AND ([{0}] = '' OR [{0}] IS NULL)", s);
                         }
-                        else if (s1 == "1")
+                        else if (s1 == "<>\"\"")
                         {
                             sFil += string.Format("AND ([{0}] <> '')", s);
                         }
@@ -245,12 +271,8 @@ namespace k001_shukka
                 }
             }
 
-            if (sFil.Length > 0)
-            {
-                checkBox1.Checked = false;
-                checkBox2.Checked = false;
-                sFil = sFil.Substring(4);
-            }
+            if (s.Length == 0) sFil = "";
+            if (sFil.Length > 0) sFil = sFil.Substring(4);
 
             try
             {
@@ -280,7 +302,7 @@ namespace k001_shukka
                 bs0.RemoveFilter();
 
                 #region dgvの書式設定全般
-                fn.SetDGV(dgv, false, 80, true, 10, 10, 50, true, 40, DEF_CON.DBLUE, DEF_CON.LGreen);
+                fn.SetDGV(dgv, false, 80, true, 10, 10, 50, true, 40, DEF_CON.STLBLUE, DEF_CON.LLGray);
                 //dgv.EnableHeadersVisualStyles = false;
                 dgv.DefaultCellStyle.BackColor = System.Drawing.Color.GhostWhite;
                 dgv.MultiSelect = true;
@@ -291,14 +313,14 @@ namespace k001_shukka
 
                 #endregion
                 bs.DataSource = null;
-
                 mydb.kyDb con = new mydb.kyDb();
+                
                 con.GetData(sSel, DEF_CON.Constr());
 
                 if (con.ds.Tables[0].Rows.Count == 0)
                 {
                     string[] Snd = { "該当がありません。", "false" };
-                    _ = promag_frm.F05_YN.ShowMiniForm(Snd);
+                    _ = promag_frm2.F05_YN.ShowMiniForm(Snd);
                     return;
                 }
                 bs.DataSource = con.ds.Tables[0];
@@ -306,7 +328,7 @@ namespace k001_shukka
                 #region dgv書式設定                
 
 
-                dgv.Columns[1].Frozen = true;
+                if (_c >= 0) dgv.Columns[_c].Frozen = true;
                 iCols = new int[con.ds.Tables[0].Columns.Count];
                 iWs = new int[iCols.Length];
 
@@ -324,15 +346,7 @@ namespace k001_shukka
                         }
                     }
                 }
-                for (int i = 0; i < iCols.Length; i++)
-                {
-                    if (iCols[i] == 19)
-                    {
-                        dgv0.Columns[i].ToolTipText = "出荷Flg:0 未, 1 準備済"; // , 2 済
-                        break;
-                    }
 
-                }
                 // iWs に iWsの順番に基づいた数値を代入する
                 for (int i = 0; i < iCols.Length; i++)
                 {
@@ -364,6 +378,8 @@ namespace k001_shukka
                     if (iWs[i] == 0) dgv.Columns[i].DefaultCellStyle.Format = "0";
                     if (iWs[i] == 1) dgv.Columns[i].DefaultCellStyle.Format = "0.0";
                     if (iWs[i] == 2) dgv.Columns[i].DefaultCellStyle.Format = "0.00";
+                    if (iWs[i] == 3) dgv.Columns[i].DefaultCellStyle.Format = "0.000";
+                    if (iWs[i] == 10) dgv.Columns[i].DefaultCellStyle.Format = "#,0";
                 }
                 // 書式　揃え
                 for (int i = 0; i < iCols.Length; i++)
@@ -376,35 +392,33 @@ namespace k001_shukka
                     if (iWs[i] > 0)
                     {
                         dgv.Columns[i].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
-                        dgv0.Columns[i].ToolTipText = "フィルター：0 = 空白のみ選択, 1 = 空白を除外";
                     }
                     // 0の場合は中央揃え
                     if (iWs[i] == 0)
                     {
                         dgv.Columns[i].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-                        dgv0.Columns[i].ToolTipText = "フィルター：0 = 空白のみ選択, 1 = 空白を除外";
-                    }
-                    if (iCols[i] == 26)
-                    {
-                        dgv0.Columns[i].ToolTipText = "出荷Flg:0 未, 1 準備済"; // , 2 済
                     }
                     // 負の場合は右揃え
                     //if (iAlign[i] < 0) dgv.Columns[icol[i]].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
                 }
-                int iWd = fn.dgvWidth(dgv0);
-                if (iWd + 21 > 1366)
+
+                #endregion
+                dgv.ClearSelection();
+
+                int w = System.Windows.Forms.Screen.GetWorkingArea(this).Width;
+                int dgvw = fn.dgvWidth(dgv);
+                int thisW = dgvw + dgv.Left + 40;
+                if (thisW <= w)
                 {
-                    this.Width = 1366;
-                    dgv.Width = this.Width - dgv.Left - 30;
+                    this.Width = thisW;
+                    dgv.Width = dgvw;
                 }
                 else
                 {
-                    dgv.Width = iWd;
-                    this.Width = dgv.Left + dgv.Width + 21;
+                    this.Width = w;
+                    dgv.Width = w - dgv.Left - 40;
                 }
-                #endregion
-                dgv.ClearSelection();
-                cb_Check();
+
                 dgv.Visible = true;
 
                 bLoad = false;
@@ -422,7 +436,7 @@ namespace k001_shukka
         {
             lbl.Text = dgv.Rows.Count.ToString();
             lbl.Left = dgv.Left + dgv.Width - lbl.Width;
-
+            label2.Left = lbl.Left - label2.Width;
         }
 
         private void btn_Click(object sender, EventArgs e)
@@ -431,86 +445,128 @@ namespace k001_shukka
             Button btn = (Button)sender;
             switch (btn.Name.Substring(6))
             {
-                case "1":
-
-                    break; // Serch
-
-                case "2": // 
-                    GetData(dgv0, bs0, sGetList());
-                    break;
-                case "3": // AC
-                    string[] Snd = { sSD, sED, "" };
-                    string[] Rcv = promag_frm.F06_SelDate.ShowMiniForm(this, Snd);
-                    if (Rcv[0].Length > 0)
-                    {
-                        sSD = Rcv[0];
-                        sED = Rcv[1];
-
-                        GetData(dgv0, bs0, sGetList());
-                    }
-                    label1.Text = string.Format("期間：{0} ~ {1}", sSD, sED);
-                    break;
+                case "1": openURL(); break; // Manual
+                case "2": GetData(dgv0, bs0, sGetList()); break; // 更新
+                case "3": ChangeTerm(); break;
+                case "4": ExportXls(dgv0); break;
+                case "5": addRec(); break;
             }
 
         }
 
+        private void addRec()
+        {
+            string[] snd = { "" };
+            _ = F15_Receipt.ShowMiniForm(this, snd);
+            int ir = dgv0.FirstDisplayedScrollingRowIndex;
+            GetData(dgv0, bs0, sGetList());
+            dgv0.FirstDisplayedScrollingRowIndex = ir;
+        }
+
+        private void ExportXls(DataGridView dgv)
+        {
+            // DataGridViewのセルデータ格納変数 -> v[,]
+            //object[,] v = new object[dgv.Rows.Count + 1, dgv.Columns.Count];
+            object[,] v = new object[dgv.Rows.Count + 1, dgv.Columns.Count];
+            #region DataGridViewのセルデータ取得 -> v に値を格納
+            // ヘッダ
+            for (int c = 0; c <= dgv.Columns.Count - 1; c++)
+            {
+                v[0, c] = dgv.Columns[c].HeaderCell.Value.ToString();
+            }
+            // データ
+            for (int r = 0; r < dgv.Rows.Count; r++)
+            {
+                for (int c = 0; c <= dgv.Columns.Count - 1; c++)
+                {
+
+                    if (dgv.Rows[r].Cells[c].Value != null)
+                    {
+                        if (dgv.Rows[r].Cells[c].Value == null
+                            || dgv.Rows[r].Cells[c].Value.ToString().Length == 0) continue;
+                        v[r + 1, c] = dgv.Rows[r].Cells[c].Value;
+                    }
+                }
+            }
+            #endregion
+            //string filePath = @"C:\app\temp.xlsx";
+
+            string fileNm = $"{lblCaption.Text}{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+            var fp = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), fileNm);
+
+            //using (var book = new XLWorkbook(XLEventTracking.Disabled))
+            //{
+            //    var sheet1 = book.AddWorksheet("シート1");
+
+
+
+            using (var wb = new ClosedXML.Excel.XLWorkbook(XLEventTracking.Disabled))
+            {
+
+                var ws = wb.AddWorksheet("DATA0");
+
+                for (int i = 0; i < v.GetLength(0); i++)
+                {
+                    for (int j = 0; j < v.GetLength(1); j++)
+                    {
+                        ws.Cell(i + 1, j + 1).Value = v[i, j];
+                    }
+                }
+                wb.SaveAs(fp);
+                string smsg = string.Format(
+                    "マイドキュメントに、「{0}」を作成しました。ファイルを開きますか？", fileNm);
+                string[] sSet = { smsg, "" };
+                string[] sRcv = promag_frm2.F05_YN.ShowMiniForm(sSet);
+                fileNm = System.Environment.GetFolderPath(Environment.SpecialFolder.Personal) + "\\" + fileNm;
+                if (sRcv[0].Length > 0) System.Diagnostics.Process.Start(fileNm);
+
+            }
+        }
+
+
+        private void ChangeTerm()
+        {
+            string[] Snd = { $"{_sd:yyyy/MM/dd}", $"{_ed:yyyy/MM/dd}", "" };
+            string[] Rcv = promag_frm.F06_SelDate.ShowMiniForm(this, Snd);
+            if (Rcv[0].Length > 0)
+            {
+                _sd = DateTime.Parse(Rcv[0]);
+                _ed = DateTime.Parse(Rcv[1]).AddDays(1);
+
+                GetData(dgv0, bs0, sGetList());
+            }
+            label1.Text = $"期間：{_sd:yy/MM/dd} ~ {_ed:yy/MM/dd}";
+        }
+
+
+        private void openURL()
+        {
+            string s = @"\\10.100.10.20\share\www\manual\cont\";
+            s += $"{DEF_CON.prjName}-{this.Name.Substring(0, 4)}.html";
+            bool b = System.IO.File.Exists(s);
+            if (!b) return;
+            System.Diagnostics.Process ps = new System.Diagnostics.Process();
+            ps.StartInfo.FileName = s;
+            ps.Start();
+        }
+
         private string sGetList()
         {
-            string s = string.Empty;
-            if (iDisp == 0)
-            {
-                s = string.Format(
-                    "SELECT"
-                 + "   si.SEQ"                            //0
-                 + "   , DATE_FORMAT(si.SHIP_DATE, '%y/%m/%d') 出荷日"                            //1
-                 + "   , DATE_FORMAT(si.DUE_DATE, '%y/%m/%d') 納品日"                            //2
-                 + "   , si.DESTINATION 出荷先"                            //3
-                 + "   , si.ITEM 品名"                            //4
-                 + "   , si.SHIPMENT_QUANTITY 出荷数量"                            //5
-                 + "   , DATE_FORMAT(sp.REQUEST_DATE, '%m/%d') 依頼日"                            //6
-                 + "   , CONCAT(w.SEI, w.MEI) 依頼者"                            //7
-                 + "   , CASE "
-                 + "     WHEN sp.PERMISSION = '0' THEN '承認'"
-                 + "     WHEN sp.PERMISSION = '1' THEN '否認'"
-                 + "     ELSE '-' "
-                 + "     END 業務承認"                            //8
-                 + "   , CONCAT(pw.SEI, pw.MEI) 業務承認者"                            //9
-                 + " , DATE_FORMAT(sp.PERMIT_DATE, '%m/%d') 業務承認日"                            //10
-                 + "   , CASE "
-                 + "     WHEN sp.I_PERMIT = '0' THEN '承認'"
-                 + "     WHEN sp.I_PERMIT = '1' THEN '否認'"
-                 + "     ELSE '-' "
-                 + "     END 品管承認"                            //11
-                 + "   , CONCAT(iw.SEI, iw.MEI) 品管承認者"                            //12
-                 + " , DATE_FORMAT(sp.i_PERMIT_DATE, '%m/%d') 品管承認日"                            //13
-                 + "   , CASE "
-                 + "     WHEN sp.APPROVAL = '0' THEN '承認' "
-                 + "     WHEN sp.APPROVAL = '1' THEN '否認'"
-                 + "     ELSE '-' "
-                 + "     END 製造承認"                            //14
-                 + "   , CONCAT(aw.SEI, aw.MEI) 製造承認者"                            //15
-                 + " , DATE_FORMAT(sp.APPROVE_DATE, '%m/%d') 製造承認日"                            //16
-                 + " FROM"
-                 + "   kyoei.t_shipment_inf si "
-                 + "   LEFT JOIN kyoei.t_ship_permission sp "
-                 + "     ON si.SEQ = sp.S_SEQ "
-                 + "   LEFT JOIN kyoei.m_worker w "
-                 + "     ON sp.REQUEST_ID = w.WKER_ID AND w.LGC_DEL = '0' "
-                 + "   LEFT JOIN kyoei.m_worker pw "
-                 + "     ON sp.PERMIT_ID = pw.WKER_ID AND pw.LGC_DEL = '0' "
-                 + "   LEFT JOIN kyoei.m_worker iw "
-                 + "     ON sp.I_PERMIT_ID = iw.WKER_ID AND iw.LGC_DEL = '0'"
-                 + "   LEFT JOIN kyoei.m_worker aw "
-                 + "     ON sp.APPROVE_ID = aw.WKER_ID AND aw.LGC_DEL = '0'"
-                 + " WHERE "
-                 + " si.SHIP_DATE >= '{0}'"
-                 + " AND si.DUE_DATE >= '2022/06/01'"
-                 + " AND si.SHIP_DATE <= '{1}'"
-                 + " ORDER BY Si.SHIP_DATE,si.DUE_DATE "
-                 + " ;"
-                    , sSD, sED);
-            }
-
+            string s =
+              "SELECT"
+             + " DATE_FORMAT(r.REG_DATE,'%Y/%m/%d') 確認日"
+             + " ,r.LOT_NO 代表LotNo"
+             + " ,r.SUPPLIER 製造元"
+             + " ,COUNT(*) 確認数"
+             + " ,r.SHIP_SEQ 受入番号"
+             + " ,CONCAT(w.SEI, w.MEI) 確認者"
+             + " ,r.iLOCATION ilcn"
+             + " FROM kyoei.t_receipt r"
+             + " LEFT JOIN kyoei.m_worker w ON r.REG_ID = w.WKER_ID AND w.LGC_DEL = '0'"
+             + $" WHERE r.REG_DATE >= '{_sd:yyyy/MM/dd}' AND r.REG_DATE <= '{_ed:yyyy/MM/dd}'"
+             + "  GROUP BY DATE_FORMAT(r.REG_DATE,'%Y/%m/%d'), r.SUPPLIER,r.SHIP_SEQ"
+             + " ORDER BY r.REG_DATE desc;";
             return s;
         }
 
@@ -562,19 +618,15 @@ namespace k001_shukka
                 sOrdColName = dgv.SortedColumn.Name;
             }
 
-            string s0 = dgv.Rows[e.RowIndex].Cells[0].Value.ToString(); //
-            string s1 = dgv.Rows[e.RowIndex].Cells[1].Value.ToString();
-            string s2 = dgv.Rows[e.RowIndex].Cells[3].Value.ToString();
-            string s3 = dgv.Rows[e.RowIndex].Cells[4].Value.ToString();
-            string s4 = dgv.Rows[e.RowIndex].Cells[5].Value.ToString();
-            string s5 = dgv.Rows[e.RowIndex].Cells[0].Value.ToString();
-            // "SEQ", "出荷日", "納品日", "出荷先", "品名", "出荷数量", "依頼日", "依頼者", "承認", "承認者" };
-            string[] sRel = { s0, "20" + s1, s2, s3, s4 };
-            _ = F09_Permit.ShowMiniForm(this, sRel);
+            string s0 = dgv.Rows[e.RowIndex].Cells["受入番号"].Value.ToString(); 
+            string s1 = dgv.Rows[e.RowIndex].Cells["ilcn"].Value.ToString(); 
+            string[] sendText = { s0 ,s1};
 
-            bs0.Sort = null;
-            GetData(dgv0, bs0, sGetList()); // 一覧更新
-
+            _ = F15_Receipt.ShowMiniForm(this, sendText);
+            
+            GetData(dgv0, bs0, sGetList());
+            
+            //arrageTextBW(dgv);
             // 並び順をダブルクリック前に戻し値を検索
             if (sOrder.Length > 0)
             {
@@ -605,10 +657,10 @@ namespace k001_shukka
         {
             if (bClose)
             {
-                DialogResult result = MessageBox.Show(
-                        "「戻る」ボタンで画面を閉じてください。", "",
-                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                //e.Cancel = true;
+                string[] snd = { "「戻る」ボタンで画面を閉じてください。", "false" };
+                _ = promag_frm2.F05_YN.ShowMiniForm(snd);
+                // return;
+
                 if (this.ReturnValue == null) this.ReturnValue = new string[] { "" };
             }
         }
@@ -629,126 +681,21 @@ namespace k001_shukka
         // CLOSE処理の最後
         private void FRM_Closed(object sender, FormClosedEventArgs e)
         {
-            if (bPHide) this.Owner.Show();
+
         }
 
         #endregion
-        private void tB_TextChanged(object sender, EventArgs e)
-        {
-            TextBox tb = (TextBox)sender;
-            if (tb.Text.Length == 0)
-            {
-                bs0.Filter = "";
-                lblFillVal(label8, dgv0);
-                return;
-            }
-            if (tb.Name == "textBox1")
-            {
-                string s = tb.Text;
-                bs0.Filter = string.Format("充填時間 LIKE '%{0}%'", s);
-                lblFillVal(label8, dgv0);
-            }
-        }
 
         private void dgv0_Scroll(object sender, ScrollEventArgs e)
         {
-            dgv0.HorizontalScrollingOffset = dgvF.HorizontalScrollingOffset;
+            //dgv0.HorizontalScrollingOffset = dgvF.HorizontalScrollingOffset;
+            dgvF.HorizontalScrollingOffset = dgv0.HorizontalScrollingOffset;
         }
 
         private void dgv0_ColumnWidthChanged(object sender, DataGridViewColumnEventArgs e)
         {
             if (bLoad) return;
             SetWDgvF(dgv0, dgvF);
-        }
-
-        private void rB_CheckedChanged(object sender, EventArgs e)
-        {
-            RadioButton rb = (RadioButton)sender;
-            if (!rb.Checked) return;
-            if (rb.Name == "rb1") iDisp = 0;
-            if (rb.Name == "rb2") iDisp = 1;
-            if (rb.Name == "rb3") iDisp = 2;
-            GetData(dgv0, bs0, sGetList()); // 一覧更新
-        }
-
-        private void cB_CheckedChanged(object sender, EventArgs e)
-        {
-            //CheckBox cb = (CheckBox)sender;
-            cb_Check();
-            lblFillVal(label8, dgv0);
-        }
-
-        private void cb_Check()
-        {
-            string s = string.Empty;
-            if (checkBox1.Checked) s = " AND 依頼日 <> ''";
-            if (checkBox2.Checked) s += " AND 製造承認日 IS NULL";
-            if (s.Length > 0) s = s.Substring(5);
-            bs0.Filter = s;
-        }
-
-        private void ExportXls(DataGridView dgv)
-        {
-            // DataGridViewのセルデータ格納変数 -> v[,]
-            //object[,] v = new object[dgv.Rows.Count + 1, dgv.Columns.Count];
-            object[,] v = new object[dgv.Rows.Count + 1, dgv.Columns.Count];
-            #region DataGridViewのセルデータ取得 -> v に値を格納
-            // ヘッダ
-            for (int c = 0; c <= dgv.Columns.Count - 1; c++)
-            {
-                v[0, c] = dgv.Columns[c].HeaderCell.Value.ToString();
-            }
-            // データ
-            for (int r = 0; r < dgv.Rows.Count; r++)
-            {
-                for (int c = 0; c <= dgv.Columns.Count - 1; c++)
-                {
-
-                    if (dgv.Rows[r].Cells[c].Value != null)
-                    {
-                        if (dgv.Rows[r].Cells[c].Value == null
-                            || dgv.Rows[r].Cells[c].Value.ToString().Length == 0) continue;
-                        v[r + 1, c] = dgv.Rows[r].Cells[c].Value;
-                    }
-                }
-            }
-            #endregion
-            //string filePath = @"C:\app\temp.xlsx";
-            string fileNm = string.Format("{1}出荷承認一覧{0}.xlsx", DateTime.Now.ToString("yyyyMMddHHmmss"), argVals[0]);
-            var fp = System.IO.Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), fileNm);
-
-            //using (var book = new XLWorkbook(XLEventTracking.Disabled))
-            //{
-            //    var sheet1 = book.AddWorksheet("シート1");
-
-            using (var wb = new ClosedXML.Excel.XLWorkbook(XLEventTracking.Disabled))
-            {
-
-                var ws = wb.AddWorksheet("DATA0");
-
-                for (int i = 0; i < v.GetLength(0); i++)
-                {
-                    for (int j = 0; j < v.GetLength(1); j++)
-                    {
-                        ws.Cell(i + 1, j + 1).Value = v[i, j];
-                    }
-                }
-                // 表全体をまとめて調整する場合は
-                ws.ColumnsUsed().AdjustToContents();
-                wb.SaveAs(fp);
-                string smsg = string.Format(
-                    "マイドキュメントに、「{0}」を作成しました。ファイルを開きますか？", fileNm);
-                string[] sSet = { smsg, "" };
-                string[] sRcv = promag_frm.F05_YN.ShowMiniForm(sSet);
-                fileNm = System.Environment.GetFolderPath(Environment.SpecialFolder.Personal) + "\\" + fileNm;
-                if (sRcv[0].Length > 0) System.Diagnostics.Process.Start(fileNm);
-            }
-        }
-
-        private void button1_Click(object sender, EventArgs e)
-        {
-            ExportXls(dgv0);
         }
     }
 }

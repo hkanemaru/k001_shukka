@@ -109,8 +109,13 @@ namespace k001_shukka
             {
                 System.IO.Directory.CreateDirectory(path);
             }
+            // C:\Label\QRcode.png
+            path = @"c:\Label";
+            if (!System.IO.Directory.Exists(path))
+            {
+                System.IO.Directory.CreateDirectory(path);
+            }
             #endregion
-
         }
 
         #region CLOSE処理
@@ -526,6 +531,40 @@ namespace k001_shukka
             // string strWeek1 = dt.ToString("ddd");
             // num.ToString("#,0")
 
+
+            string GetSNM =
+                "SELECT"
+                 + " st.SIPPING_GRADE"
+                 + " FROM kyoei.t_can_barcode cb"
+                 + " LEFT JOIN kyoei.t_shipment_inf si ON si.SEQ = cb.SHIP_SEQ AND IFNULL(cb.LOCATION,0) = 0"
+                 + " LEFT JOIN kyoei.m_j_shipment   js ON js.SEQ = cb.SHIP_SEQ AND IFNULL(cb.LOCATION,0) = 54"
+                 + " LEFT JOIN ("
+                 + " SELECT"
+                 + " p.SHIP_SEQ"
+                 + " ,p.GRADE_AC_SEQ gaSEQ"
+                 + " FROM kyoei.t_product p"
+                 + " GROUP BY p.SHIP_SEQ"
+                 + " UNION"
+                 + " SELECT"
+                 + " p.SHIP_SEQ"
+                 + " ,p.GRADE_AC_SEQ gaSEQ"
+                 + " FROM kyoei.t_m_product p"
+                 + " GROUP BY p.SHIP_SEQ"
+                 + " UNION"
+                 + " SELECT"
+                 + " p.SHIP_SEQ + 100000000"
+                 + " ,p.GRADE_AC_SEQ gaSEQ"
+                 + " FROM kyoei.kj_p_product p"
+                 + " GROUP BY p.SHIP_SEQ"
+                 + " ) p           ON p.SHIP_SEQ = IFNULL(si.SEQ,js.SEQ + 100000000)"
+                 + " LEFT JOIN kyoei.m_inspect_std  st    ON st.GRADE_AC_SEQ = si.GA_SEQ"
+                 + $" WHERE cb.LOT = '{B_LOT}';";
+            mydb.kyDb con = new mydb.kyDb();
+            string ShipNM = con.sColVal(GetSNM, DEF_CON.Constr());
+            if (ShipNM == "err") ShipNM = "NA-BT7906";
+
+
+
             System.Diagnostics.Process p;
 
             #region ページ設定
@@ -628,14 +667,14 @@ namespace k001_shukka
                 doc.Add(new Paragraph(" "));
                 doc.Add(new Paragraph(" "));
 
-                B_HINMEI += "          ";
-                B_HINMEI = B_HINMEI.Substring(0, 10);
+                ShipNM += "          "; // B_HINMEI
+                ShipNM = ShipNM.Substring(0, 10);
                 B_LOT += "          ";
                 B_LOT = B_LOT.Substring(0, 10);
                 string s_WEIGHT = B_WEIGHT.ToString();
                 s_WEIGHT += "     ";
                 s_WEIGHT = s_WEIGHT.Substring(0, 5);
-                s = B_HINMEI + B_LOT + s_WEIGHT;
+                s = ShipNM + B_LOT + s_WEIGHT;
 
                 #region ここでバーコードを作成しクリップボードにコピーする
                 // 1024x768サイズのImageオブジェクトを作成する

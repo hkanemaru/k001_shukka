@@ -36,6 +36,30 @@ namespace k001_shukka
             //閉じる
             sw1.Close();
         }
+        public static void CrtUsrIni(string sID, string sPara, string sAdd1, string sAdd2)
+        {
+            if (!Directory.Exists(DEF_CON.usr_dir))
+            {
+                Directory.CreateDirectory(DEF_CON.usr_dir);
+            }
+            string scont = sID;
+            scont += "," + usr.id;
+            scont += "," + usr.iDB.ToString();
+            scont += "," + DateTime.Now.ToString();
+            scont += "," + sPara;
+            scont += "," + sAdd1;
+            scont += "," + sAdd2;
+
+            System.IO.StreamWriter sw1 = new System.IO.StreamWriter(
+            DEF_CON.usr_dir + DEF_CON.usr_fl,
+            false,
+            System.Text.Encoding.GetEncoding("shift_jis"));
+
+            //LogFileに書き込む
+            sw1.Write(scont);
+            //閉じる
+            sw1.Close();
+        }
         public static string frmLTxt(string sT)
         {
             string s = sT;

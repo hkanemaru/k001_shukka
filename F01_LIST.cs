@@ -7,6 +7,9 @@ using System;
 using System.IO;
 using System.Windows.Forms;
 using Oracle.ManagedDataAccess.Client;
+using System.Runtime.InteropServices;
+using Excel = Microsoft.Office.Interop.Excel;
+
 //iTextSharp.text.FontクラスがSystem.Drawing.Fontクラスと
 //混在するためiFontという別名を設定
 
@@ -234,13 +237,11 @@ namespace k001_shukka
             string s1 = @"[0-9]{8}";
             s = string.Format(
                    "SELECT"
-                 + "  si.SEQ 出荷No"                                                // 0
+                 + "  si.SEQ 出荷No"                                                // 0 
                  + " , si.JDNNO 伝票番号"                                           // 1
                  + " , si.LINNO 行番号"                                             // 2
                  + " , CASE"
                  + "   WHEN jc.SYUYTIDT IS NOT NULL"
-                 //+ "   THEN CONCAT(SUBSTRING(jc.SYUYTIDT,3,2),'/',SUBSTRING(jc.SYUYTIDT,5,2)"
-                 //+ "    ,'/',SUBSTRING(jc.SYUYTIDT,7,2))"
                  + "   THEN DATE_FORMAT(jc.SYUYTIDT,  '%y/%m/%d')"
                  + "   ELSE DATE_FORMAT(si.SHIP_DATE, '%y/%m/%d') END 出荷日"       // 3
 
@@ -280,16 +281,12 @@ namespace k001_shukka
                  + "     THEN '5SC連携待'"
                  + "   WHEN jcr.STATUS IS NOT NULL AND jcr.STATUS = '1' AND si.DN_CHK_DATE IS NULL" // 返却STATUS有 STATUS=1"
                  + "     THEN '6SC連携エラー'"
-                 //+ "   WHEN tmp.CHK_DATE IS NOT NULL AND si.DN_CHK_DATE IS NULL" // 出荷確認有 受領未確認
-                 //+ "     THEN '7受領確認待' "
+
                  + "   ELSE '9未設定' "
                  + "   END STATUS"                                               // 7 8
                  + " , CASE WHEN jcr.STATUS = '0' THEN '正'"
                  + "   WHEN jcr.STATUS = '1' THEN 'E' ELSE '-' END 連"           // 8 9
-                 //+ " , CASE WHEN (LOCATE(':',jcr.CM) + LOCATE('：',jcr.CM)) > 0"
-                 //+ "   THEN SUBSTRING_INDEX(jcr.CM, '：', -1) "
-                 //+ "   ELSE '' END 出荷番号"                                     // 9 10
-/*                 + " , jcr.CM 出荷番号"      */                               // 9  11
+                 
                  + " , REPLACE(jcr.CM,'正常終了：','') 出荷番号"                 // 9  10
                  + " , CASE WHEN si.BIKOU IS NULL THEN '' ELSE '*' END メ"          //10  111
                  + " , CONCAT(w.SEI, w.MEI) 更新者"                              // 11 12
@@ -297,7 +294,7 @@ namespace k001_shukka
                  + " , jc.TOKCD"                                                 //  13  14
                  + " , jc.HINCD"                                                 //  14  15
                  + " , jc.SOUCD LOC_SEQ"                                              //   15  16 // excelで使用
-                 + " , si.BIKOU"                                                // 16  17
+                 + " , mm.CONTENT BIKOU"                                                // 16  17
                  + " , bc.LOT コLot"                                                // 17  18
                  + " FROM"
                  + "  kyoei.t_shipment_inf si "
@@ -307,58 +304,19 @@ namespace k001_shukka
                  + "   ON si.JDNNO = jc.JDNNO AND si.LINNO = jc.LINNO"
                  + "  LEFT JOIN kyoei.sc_juchu_ret jcr"
                  + "   ON si.JDNNO = jcr.JDNNO AND si.LINNO = jcr.LINNO"
-                 + "  LEFT JOIN kyoei.t_memo mm"
-                 + "   ON mm.SEQ = si.BIKOU AND mm.LGC_DEL = '0'"
+
             #region oym mrf tcg 3工場の P_SEQ,WEIGHT,SHIP_SEQ CHK_DATE
                  + "  LEFT JOIN ( "
-            #region 旧コード
-                 //+ "    SELECT"
-                 //+ "      CAST(SUM(pdc.WEIGHT) as signed) wt"
-                 //+ "      , pdc.SHIP_SEQ "
-                 //+ "      , AVG(pdc.CHK_DATE) CHK_DATE"
-                 //+ "    FROM"
-                 //+ "    ( "
-                 //+ "      SELECT"
-                 //+ "        p.PRODUCT_SEQ"
-                 //+ "        , p.WEIGHT"
-                 //+ "        , p.SHIP_SEQ"
-                 //+ "        , p.SHIP_CHK_DATE CHK_DATE"
-                 //+ "      FROM"
-                 //+ "        t_product p"
-                 //+ "      WHERE"
-                 //+ "        p.SHIP_SEQ IS NOT NULL"
-                 //+ "      UNION "
-                 //+ "      SELECT"
-                 //+ "        tcg.PRODUCT_SEQ"
-                 //+ "        , tcg.WEIGHT"
-                 //+ "        , tcg.SHIP_SEQ "
-                 //+ "        , tcg.SHIP_CHK_DATE CHK_DATE"
-                 //+ "      FROM"
-                 //+ "        t_t_product tcg"
-                 //+ "      WHERE"
-                 //+ "        tcg.SHIP_SEQ IS NOT NULL"
-                 //+ "      UNION "
-                 //+ "      SELECT"
-                 //+ "        mp.PRODUCT_SEQ"
-                 //+ "        , mp.WEIGHT"
-                 //+ "        , mp.SHIP_SEQ "
-                 //+ "        , mp.CHK_SHIPPING CHK_DATE"
-                 //+ "      FROM"
-                 //+ "        t_m_product mp"
-                 //+ "      WHERE"
-                 //+ "        mp.SHIP_SEQ IS NOT NULL"
-                 //+ "    ) pdc"
-                 //+ "    GROUP BY pdc.SHIP_SEQ"
-            #endregion
 
                  + " SELECT"
-                 + "  CAST(SUM(pdc.WEIGHT) as signed) wt"    //0
+                 + "  CAST(SUM(IFNULL(lm.REMAIN_WT,pdc.WEIGHT)) as signed) wt"    //0
                  + "  , pdc.SHIP_SEQ"    //1
                  + "  , AVG(pdc.CHK_DATE) CHK_DATE "    //2
                  + " FROM"
                  + " ( "
                  + " SELECT"
                  + "   p.PRODUCT_SEQ"
+                 + "   , p.LOT_NO"
                  + "   , p.WEIGHT"
                  + "   , p.SHIP_SEQ"
                  + "   , p.SHIP_CHK_DATE CHK_DATE "
@@ -383,6 +341,7 @@ namespace k001_shukka
                  + " UNION "
                  + " SELECT"
                  + "   tcg.PRODUCT_SEQ"
+                 + "   , tcg.LOT_NO"
                  + "   , tcg.WEIGHT"
                  + "   , tcg.SHIP_SEQ"
                  + "   , tcg.SHIP_CHK_DATE CHK_DATE "
@@ -407,6 +366,7 @@ namespace k001_shukka
                  + " UNION "
                  + " SELECT"
                  + "   mp.PRODUCT_SEQ"
+                 + "   , mp.LOT_NO"
                  + "   , mp.WEIGHT"
                  + "   , mp.SHIP_SEQ"
                  + "   , mp.CHK_SHIPPING CHK_DATE "
@@ -429,6 +389,7 @@ namespace k001_shukka
                  + "   AND si.LGC_DEL = '0'"
                  + " )"
                  + ") pdc "
+                 + "  LEFT JOIN kyoei.t_lot_manegement lm   ON lm.LOT_NO = pdc.LOT_NO"
                  + "     GROUP BY  pdc.SHIP_SEQ"
 
 
@@ -436,6 +397,8 @@ namespace k001_shukka
                  + "    ON tmp.SHIP_SEQ = si.SEQ "
                  + "  LEFT JOIN t_can_barcode bc "
                  + "    ON bc.SHIP_SEQ = si.SEQ AND bc.LOCATION IS NULL"
+                 + "  LEFT JOIN kyoei.t_memo mm"
+                 + "    ON si.BIKOU = mm.SEQ"
             #endregion
                  + " WHERE"
                  //+ "   si.UPD_DATE > DATE_ADD(CURRENT_DATE (), interval - 6 month) "
@@ -492,7 +455,7 @@ namespace k001_shukka
                 int[] icol;
                 // 列幅を整える
                 icol = new int[] { 0, 1, 2, 3, 4,     5, 6, 7,     8, 9, 10, 11 ,12,13,18};
-                iw = new int[] { 48, 83, 40, 77,77, 220, 180, 70, 90, 30, 83,28, 67, 77,102 };
+                iw = new int[] { 60, 83, 40, 77,77, 220, 180, 70, 90, 30, 83,28, 67, 77,102 };
                 fn.setDgvWidth(dgv, icol, iw);
                 #endregion
                 // 数量
@@ -616,6 +579,12 @@ namespace k001_shukka
                              + " FROM kyoei.sc_juchu sj"
                              + " WHERE sj.JDNNO = '{0}' AND sj.LINNO = '{1}' AND sj.LGC_DEL = '0'"
                              + " )"
+                             + " ,DESTINATION = ("
+                             + " SELECT"
+                             + " sj.NHSNM"
+                             + " FROM kyoei.sc_juchu sj"
+                             + " WHERE sj.JDNNO = '{0}' AND sj.LINNO = '{1}' AND sj.LGC_DEL = '0'"
+                             + " )"
                              + " WHERE JDNNO = '{0}' AND LINNO = '{1}';"
                             , sNo, sLn);
 
@@ -666,17 +635,68 @@ namespace k001_shukka
             {
                 if(dgv0.SelectedRows.Count == 1)
                 {
-                    string s0 = dgv0.CurrentRow.Cells[0].Value.ToString();
-                    string s1 = dgv0.CurrentRow.Cells[1].Value.ToString();
+                    string s0 = dgv0.CurrentRow.Cells["出荷No"].Value.ToString();
+                    string s1 = dgv0.CurrentRow.Cells["伝票番号"].Value.ToString();
                     
                     string s2 = dgv0.CurrentRow.Cells["STATUS"].Value.ToString();
                     if (s2.Length > 0) s2 = s2.Substring(0, 1);
-                    string s3 = dgv0.CurrentRow.Cells[2].Value.ToString();
+                    string s3 = dgv0.CurrentRow.Cells["行番号"].Value.ToString(); // 旧 [2]
                     string s4 = dgv0.CurrentRow.Cells["コLot"].Value.ToString();
+                    string dest = dgv0.CurrentRow.Cells["出荷先"].Value.ToString();
 
-                    if (s2 == "6" || s2 == "1" || s2 == "2" || s2 == "4" 
-                                            || (s2 == "3" && s4.Length > 0))
+                    if (s2 == "6" || s2 == "1" || s2 == "2" || s2 == "4" || s2 == "3")
                     {
+                        
+                        if (s2 == "3" && s4.Length == 0 && dest.IndexOf("東洋製罐") < 0) // LOT選定済み
+                        {
+                            string[] sSnd = { "輸出売上として記録しますか" ,""};
+                            string[] sRcv = promag_frm.F05_YN.ShowMiniForm(sSnd);
+                            mydb.kyDb con = new mydb.kyDb();
+                            if (sRcv[0].Length == 0)
+                            {
+                                string[] sSndT = { "売上番号を登録する理由を記入して下さい。", "" };
+                                string[] sRcvT = promag_frm.F05_YN.ShowMiniForm(sSndT);
+                                if(sRcvT[0].Length == 0)
+                                {
+                                    string[] sSnd1 = { "売上番号登録出来るSTATUSではありません。", "false" };
+                                    _ = promag_frm.F05_YN.ShowMiniForm(sSnd);
+                                    return;
+                                }
+                                // 0>Title 1> 説明 2> textbox1.text(選択) 3> 幅(選択)
+                                sSnd = new string[] { "売上番号登録理由", "理由を記入して下さい" };
+                                sRcv = promag_frm.F08_BIKOU.ShowMiniForm(this, sSnd);
+                                if (sRcv[0].Length == 0) return;
+                                
+                                int iSeq = con.iGetCount("SELECT MAX(SEQ) + 1 FROM t_memo;", DEF_CON.Constr());
+                                string sSql = string.Format(
+                                    "INSERT INTO t_memo (SEQ, LGC_DEL) VALUES "
+                                  + "({0}, '9');"
+                                    ,iSeq);
+                                con.ExecSql(false, DEF_CON.Constr(), sSql);
+                                sSql = string.Format(
+                                    "SELECT IFNULL(si.BIKOU,0) FROM kyoei.t_shipment_inf si"
+                                  + "WHERE si.SEQ = {0};"
+                                  , s0);
+                                int iBikou = con.iGetCount(sSql, DEF_CON.Constr());
+                                string sB_SEQ = iBikou.ToString();
+                                if (iBikou == 0) sB_SEQ = "NULL";
+                                //SEQ,SUB_SEQ,CONTENT,UPD_DATE,UPD_ID,LGC_DEL
+                                sSql = string.Format(
+                                    "UPDATE t_memo SET "
+                                  + "SUB_SEQ = {0}, CONTENT = '{1}', UPD_DATE = NOW()"
+                                  + ", UPD_ID = '{2}', LGC_DEL = '0' "
+                                  + "WHERE SEQ = {3};"
+                                    ,sB_SEQ, sRcv[0], usr.id, iSeq);
+                                con.ExecSql(false, DEF_CON.Constr(), sSql);
+                            }
+                            else
+                            {
+                                string s = string.Format(
+                                    "UPDATE kyoei.t_shipment_inf SET OVERSEAS = 1 WHERE SEQ = {0}"
+                                    , s0);
+                                con.ExecSql(false, DEF_CON.Constr(), s);
+                            }
+                        }
                         if (s1.Length > 0 && s2.Length > 0)
                         {
                             string[] sSnd = { s0, s1, s2, s3 };
@@ -770,7 +790,7 @@ namespace k001_shukka
             if(btn.Name == "button11")
             {
                 string sSeq = dgv0.CurrentRow.Cells[0].Value.ToString();
-                fn.CrtUsrIni("2", "011" + sSeq);
+                fn.CrtUsrIni("2", "011" ,sSeq,"");
                 var proc = new System.Diagnostics.Process();
                 // C:\Users\h-kanemaru\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\kProductPlan
                 try
@@ -933,8 +953,8 @@ namespace k001_shukka
                         if (sRcv[1].Length == 0) subSEQ = iCnt.ToString();
                         else subSEQ = sRcv[1];
                         sSql = string.Format(
-                            "UPDATE kyoei.t_shipment_inf SET BIKOU = {0} WHERE SEQ = {1};"
-                            , iCnt.ToString(), dgv0.CurrentRow.Cells[0].Value.ToString());
+                            "UPDATE kyoei.t_shipment_inf SET BIKOU = {0}, UPD_ID = '{2}', UPD_DATE = NOW() WHERE SEQ = {1};"
+                            , iCnt.ToString(), dgv0.CurrentRow.Cells[0].Value.ToString(), usr.id);
                         sSql += string.Format(
                             "INSERT INTO kyoei.t_memo (SEQ, SUB_SEQ, CONTENT, UPD_DATE, UPD_ID, LGC_DEL) VALUES "
                             + " ({0}, {3}, '{1}', NOW(), '{2}', '0');"
@@ -1004,6 +1024,11 @@ namespace k001_shukka
                     }
                     this.Visible = true;
                 }
+            }
+
+            if (btn.Name == "button14")
+            {
+                ExportGRS();
             }
         }
 
@@ -1105,7 +1130,7 @@ namespace k001_shukka
                     }
                 }
                 // 表全体をまとめて調整する場合は
-                ws.ColumnsUsed().AdjustToContents();
+                //ws.ColumnsUsed().AdjustToContents();
                 wb.SaveAs(fp);
                 string smsg = string.Format(
                     "マイドキュメントに、「{0}」を作成しました。ファイルを開きますか？", fileNm);
@@ -1993,7 +2018,7 @@ namespace k001_shukka
              + " si.SEQ"  //0
              + " ,IFNULL(si.ITEM,jc.HINNMA)"  //1
              + " ,IFNULL(jc.UODSU,si.SHIPMENT_QUANTITY)"  //2
-             + " ,tmp.WEIGHT"  //3
+             + " ,IFNULL(lm.REMAIN_WT,tmp.WEIGHT) WEIGHT"  //3
              + " ,tmp.LOT_NO"  //4
              + " ,SUBSTRING_INDEX(tmp.LOT_NO,'-',1) dDate"  //5
              + " ,SUBSTRING_INDEX(tmp.LOT_NO,'-',-2) dLot"  //6
@@ -2003,7 +2028,7 @@ namespace k001_shukka
              + "  LEFT JOIN kyoei.sc_juchu jc"
              + "  ON si.JC_SEQ = jc.SEQ"
              + "  LEFT JOIN kyoei.t_can_barcode cb"
-             + "  ON cb.SHIP_SEQ = si.SEQ"
+             + "  ON cb.SHIP_SEQ = si.SEQ AND cb.LOCATION = 2"
              + "  LEFT JOIN "
              + "  ("
              + "  SELECT"
@@ -2026,8 +2051,14 @@ namespace k001_shukka
              + "  ,tp.LOT_NO"
              + "  FROM kyoei.t_t_product tp"
              + "  WHERE tp.SHIP_SEQ IN ({0})"
-             + "  ) tmp"
-             + "  ON tmp.SHIP_SEQ = si.SEQ"
+             + "  ) tmp ON tmp.SHIP_SEQ = si.SEQ"
+             // + "  LEFT JOIN t_lot_manegement lm ON lm.LOT_NO = tmp.LOT_NO"
+             + " LEFT JOIN ("
+             + " SELECT lm.LOT_NO, lm.REMAIN_WT FROM kyoei.t_lot_manegement lm"
+             + " WHERE lm.SEQ IN("
+             + " SELECT MAX(SEQ) FROM t_lot_manegement GROUP BY LOT_NO)"
+             + " ) lm         ON lm.LOT_NO = tmp.LOT_NO"
+          
              + " WHERE si.SEQ IN ({0})"
              + " GROUP BY si.SEQ,tmp.LOT_NO"
              + " ORDER BY"
@@ -2063,11 +2094,118 @@ namespace k001_shukka
                  + " LEFT JOIN kyoei.sc_juchu jc"
                  + " ON si.JDNNO = jc.JDNNO AND si.LINNO = jc.LINNO"
                  + " LEFT JOIN t_can_barcode bc "
-                 + " ON bc.SHIP_SEQ = si.SEQ"
+                 + " ON bc.SHIP_SEQ = si.SEQ AND bc.LOCATION = 2"
                  + " WHERE si.SEQ = {0};"
                  , shipSEQ
                 );
             return s;
+        }
+
+        // ExportXlsRich(sNOUNM, sTokCD, sNouhinbi, sTanTo, sDenNo, v);
+        private void ExportXlsRich(string sNOUNM, string sTokCD, string sNouhinbi, string sTanto, string sDenNo, object[,] var)
+        {
+            
+            #region EXCEL起動
+            Excel.Application objExcel = null;
+            Excel.Workbooks objWorkBooks = null;
+            Excel.Workbook objWorkBook = null;
+            Excel.Sheets objWorkSheets = null;
+            Excel.Worksheet objWorkSheet = null;
+            #endregion
+
+            #region EXCELアプリケーション生成
+            try
+            {
+                objExcel = new Excel.Application();
+                objExcel.DisplayAlerts = false; // 確認メッセージを非表示に設定
+            }
+            catch
+            {
+                throw new Exception("Microsoft Excelがインストールされていません");
+            }
+            #endregion
+
+            #region 操作対象のEXCELブックを指定 -> templateファイル
+            objWorkBooks = objExcel.Workbooks;
+            string xlBookName = @"\\10.100.10.20\www\kyoei\xls\東レ土浦納品書.xltx";
+            //xlBookName = @"c:\tetra\Book1.xlsx";
+            #endregion
+
+            #region エラー処理:操作対象EXCELが見つからない時は処理中止
+            if (System.IO.File.Exists(xlBookName) == false)
+            {
+                throw new Exception("印刷用エクセルファイルが見つかりませんでした");
+            }
+            #endregion
+
+            #region 操作対象EXCELファイルをマイドキュメントにコピー
+            // ファイル名のみ取得
+            string xlfname = Path.GetFileName(xlBookName);
+            string sTarget =
+                        System.Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+            if (sTarget[sTarget.Length - 1] != Path.DirectorySeparatorChar)
+            {
+                sTarget = sTarget + Path.DirectorySeparatorChar;
+                sTarget = sTarget + xlfname;
+            }
+
+            if (!File.Exists(sTarget) ||
+                    File.GetLastWriteTime(sTarget) < File.GetLastWriteTime(xlBookName))
+            {
+                File.Copy(xlBookName, sTarget, true);
+            }
+            #endregion
+            // ファイルオープン
+            objWorkBook = objWorkBooks.Open(sTarget);
+
+
+            
+            // シートを選択
+            objWorkSheets = objWorkBook.Worksheets;
+            int lastSht = objWorkSheets.Count;
+            objWorkSheet = (Excel.Worksheet)objWorkBook.Sheets[lastSht];
+            // EXCELにデータ転送////
+            // string sNOUNM, string sTokCD, string sNouhinbi, string sTanto, string sDenNo, object[,] var
+            objWorkSheet.Cells[1, 1].value2 = sNOUNM;
+            objWorkSheet.Cells[1, 2].value2 = sNouhinbi;
+            objWorkSheet.Cells[1, 3].value2 = sTanto;
+            objWorkSheet.Cells[1, 4].value2 = sDenNo;
+
+            objWorkSheet.Range[objWorkSheet.Cells[2, 1]
+                , objWorkSheet.Cells[var.GetLength(0) + 1, var.GetLength(1)]].value2 = var;
+
+            //// 列幅自動調整
+            //objWorkSheet.Range[
+            //        objWorkSheet.Cells[1, 1]
+            //        , objWorkSheet.Cells[v.GetLength(0), v.GetLength(1)]].EntireColumn.AutoFit();
+
+
+            // 先頭のシートをアクティブにする。
+            objWorkSheet = null;
+            objWorkSheet = (Excel.Worksheet)objWorkBook.Sheets[1];
+            //string sLoc = "宇都宮工場";
+            //if (argVals[1] == "51") sLoc = "東日本PETボトルMRC";
+            //objWorkSheet.Cells[2, 6] = sLoc;
+            //objWorkSheet.Cells[2, 15] = sLoc;
+
+
+            objWorkSheet.Activate();
+            // EXCEL表示
+            objExcel.Visible = true;
+
+            #region EXCEL解放
+            Marshal.ReleaseComObject(objWorkSheet);
+            Marshal.ReleaseComObject(objWorkSheets);
+            Marshal.ReleaseComObject(objWorkBook);
+            Marshal.ReleaseComObject(objWorkBooks);
+            Marshal.ReleaseComObject(objExcel);
+
+            objWorkSheet = null;
+            objWorkSheets = null;
+            objWorkBook = null;
+            objWorkBooks = null;
+            objExcel = null;
+            #endregion  
         }
 
         private void prtLotList()
@@ -2166,6 +2304,13 @@ namespace k001_shukka
                             v[row, col] = con.ds.Tables[0].Rows[row][col].ToString();
                         }
                     }
+
+                    if(sTokCD == "0000014101601" && sNOUNM.IndexOf("東レ") >= 0 && sNOUNM.IndexOf("土浦工場") >= 0)
+                    {
+                        ExportXlsRich(sNOUNM, sTokCD, sNouhinbi, sTanTo, sDenNo, v);
+                        //return;
+                    }
+                    if(sTokCD == "0000014500803") ExportXlsRich(sNOUNM, sTokCD, sNouhinbi, sTanTo, sDenNo, v);
 
                     System.Diagnostics.Process p;
                     #region ドキュメントを作成 d.ToString("yyyyMMddHHmmss"))
@@ -2556,6 +2701,241 @@ namespace k001_shukka
                 dgv0.FirstDisplayedScrollingRowIndex = irow;
             }
             this.Visible = true;
+        }
+
+        private void ExportGRS()
+        {
+            string fileNm = "GRS報告資料.xlsx";
+
+            // 一覧の警告
+            if(dgv0.SelectedRows.Count == 0)
+            {
+                string[] snd = { "一覧から出力するデータを選択して下さい。", "false" };
+                _ = promag_frm.F05_YN.ShowMiniForm(snd);
+                return;
+            }
+            // 出荷No
+            string seq = string.Empty;
+            foreach(DataGridViewRow r in dgv0.SelectedRows)
+            {
+                string tmp = dgv0.Rows[r.Index].Cells["出荷No"].Value.ToString();
+                seq += $",{tmp}";
+            }
+            seq = seq.Substring(1);
+
+
+
+            #region 操作対象のEXCELブックを指定 -> templateファイル
+            string xlBookName = DEF_CON.FLSvrXls + fileNm;
+            // 完成後削除
+            // xlBookName = DEF_CON.usr_dir + @"\" + fileNm;
+            #endregion
+            try
+            {
+                #region エラー処理:操作対象EXCELが見つからない時は処理中止
+                if (System.IO.File.Exists(xlBookName) == false)
+                {
+                    throw new Exception("印刷用エクセルファイルが見つかりませんでした");
+                }
+                #endregion
+
+                #region 操作対象EXCELファイルをマイドキュメントにコピー
+                // ファイル名のみ取得
+                string xlfname = Path.GetFileName(xlBookName);
+                string sTarget =
+                            System.Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+                if (sTarget[sTarget.Length - 1] != Path.DirectorySeparatorChar)
+                {
+                    sTarget += Path.DirectorySeparatorChar;
+                    sTarget += xlfname;
+                }
+
+                if (!File.Exists(sTarget) ||
+                        File.GetLastWriteTime(sTarget) < File.GetLastWriteTime(xlBookName))
+                {
+                    File.Copy(xlBookName, sTarget, true);
+                }
+                #endregion
+            }
+            catch
+            {
+                string[] Snd = { "エクセルファイルをコピーできませんでした。", "false" };
+                _ = promag_frm.F05_YN.ShowMiniForm(Snd);
+                return;
+            }
+            var fp = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), fileNm);
+
+            string sGetInf = sGetGRS(seq);
+
+            mydb.kyDb con = new mydb.kyDb();
+            con.GetData(sGetInf, DEF_CON.Constr());
+            object[,] v = new object[con.ds.Tables[0].Rows.Count + 1, con.ds.Tables[0].Columns.Count];
+            #region DataGridViewのセルデータ取得 -> v に値を格納
+            //// ヘッダ
+            //for (int c = 0; c <= con.ds.Tables[0].Columns.Count - 1; c++)
+            //{
+            //    v[0, c] = con.ds.Tables[0].Columns[c].ColumnName;
+            //}
+            // データ  6行2列
+            for (int r = 0; r < con.ds.Tables[0].Rows.Count; r++)
+            {
+                for (int c = 0; c < con.ds.Tables[0].Columns.Count; c++)
+                {
+
+                    if (con.ds.Tables[0].Rows[r][c].ToString().Length != 0)
+                    {
+                        v[r, c] = con.ds.Tables[0].Rows[r][c].ToString();
+                    }
+                }
+            }
+            #endregion
+
+
+            using (var wb = new XLWorkbook(fp))
+            {
+
+                // var ws = wb.AddWorksheet("DATA0");
+                var ws = wb.Worksheet("Sheet1");
+
+                for (int i = 0; i < v.GetLength(0); i++)
+                {
+                    for (int j = 0; j < v.GetLength(1); j++)
+                    {
+                        string adr = string.Empty;
+                        if (j == v.GetLength(1) - 1)
+                        {
+                            adr = (v[i, j] ?? "").ToString();
+                            if(adr.Length > 0) adr = v[i, j].ToString().Replace("＼", @"\");
+                            ws.Cell(i + 6, j + 2).Value = adr;
+                        }
+                        else ws.Cell(i + 6, j + 2).Value = v[i, j];
+                    }
+                }
+                // 表全体をまとめて調整する場合は
+                //ws.ColumnsUsed().AdjustToContents();
+                //ws.Columns(2, 12).AdjustToContents();
+
+                
+
+                fileNm = string.Format("GRS報告資料{0}.xlsx", DateTime.Now.ToString("yyyyMMdd_HHmmss"));
+                fp = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), fileNm);
+                wb.Worksheet("Sheet1").SetTabActive();
+                // wb2.Worksheet("搬入").Cell(2, 2).Value = sd;
+                wb.SaveAs(fp);
+                string smsg = string.Format(
+                    "マイドキュメントに、「{0}」を作成しました。ファイルを開きますか？", fileNm);
+                string[] sSet = { smsg, "" };
+                string[] sRcv = promag_frm.F05_YN.ShowMiniForm(sSet);
+                fileNm = System.Environment.GetFolderPath(Environment.SpecialFolder.Personal) + "\\" + fileNm;
+                if (sRcv[0].Length > 0) System.Diagnostics.Process.Start(fileNm);
+            }
+        }
+
+        private string sGetGRS(string seq)
+        {
+            string s;
+            string voAddress = @"\\\\10.100.10.20\\j01jpt-u\\VOUCHER_jptu";
+            s =
+            "SELECT"
+                + " sh.ITEM       製品名"
+                + " ,mx.OUT_LOT_NO  製品LotNo"
+                + " ,mx.IN_LOT_NO  原料LotNo"
+                + " ,mat.VNO       入荷先納品書"
+                + " ,CONCAT(ti.GRADE,' ',ti.MAKER) 入荷先"
+                + " ,IFNULL(mat.shhDAY,mat.shuDAY) 入荷日"
+                + " ,sh.DUE_DATE 納品日"
+                + " ,sh.JDNNO    納品書"
+                + " ,mat.SHIP_SEQ"
+                + " ,mat.VADD    入荷先納品書場所"
+                + " FROM kyoei.t_mix_material mx"
+                + " LEFT JOIN kyoei.t_input ti        ON ti.LOT_NO = mx.IN_LOT_NO"
+                + " LEFT JOIN kyoei.t_product p       ON p.LOT_NO = mx.OUT_LOT_NO"
+                + " LEFT JOIN kyoei.t_shipment_inf sh ON sh.SEQ = p.SHIP_SEQ"
+                + " LEFT JOIN "
+                + " ("
+                + " SELECT"
+                + " jp.LOT_NO"
+                + " ,jp.SHIP_SEQ"
+                + " ,CASE jp.loc WHEN 14 THEN vou.VOUCHER_NO ELSE voh.VOUCHER_NO END VNO"
+                + $" ,CASE jp.loc WHEN 14 THEN '{voAddress}' ELSE voh.FILE_ADDRESS END VADD"
+                //+ " ,IFNULL(voh.VOUCHER_NO,vou.VOUCHER_NO) VNO"
+                //+ $" ,IFNULL(voh.FILE_ADDRESS, CASE WHEN vou.VOUCHER_NO IS NOT NULL THEN '{voAddress}' ELSE '' END) VADD"
+                + " ,IFNULL(shh.DERIVERY_DATE,shh.SHIPPING_DATE) shhDAY"
+                + " ,IFNULL(shu.DERIVERY_DATE,shu.SHIPPING_DATE) shuDAY"
+                + " FROM"
+                + " ("
+                + " SELECT"
+                + " p.LOT_NO"
+                + " ,p.SHIP_SEQ"
+                + " ,51 loc"
+                + " FROM kyoei.mj_product p"
+                + " WHERE p.LOT_KBN = '0'"
+                + " AND p.LOT_NO IN ("
+                + " SELECT"
+                + " mx.IN_LOT_NO"
+                + " FROM kyoei.t_mix_material mx"
+                + " LEFT JOIN kyoei.t_product p   ON p.LOT_NO = mx.OUT_LOT_NO"
+                + " WHERE"
+                + " 1 = 1"
+                + " AND mx.OUT_LOT_NO IS NOT NULL"
+                + $" AND p.SHIP_SEQ IN ({seq})"
+                + " GROUP BY mx.OUT_LOT_NO, mx.IN_LOT_NO"
+                + " )"
+                + " UNION"
+                + " SELECT"
+                + " p.LOT_NO"
+                + " ,p.SHIP_SEQ"
+                + " ,54 loc"
+                + " FROM kyoei.kj_t_product p"
+                + " WHERE p.LOT_KBN = '0'"
+                + " AND p.LOT_NO IN ("
+                + " SELECT"
+                + " mx.IN_LOT_NO"
+                + " FROM kyoei.t_mix_material mx"
+                + " LEFT JOIN kyoei.t_product p   ON p.LOT_NO = mx.OUT_LOT_NO"
+                + " WHERE"
+                + " 1 = 1"
+                + " AND mx.OUT_LOT_NO IS NOT NULL"
+                + $" AND p.SHIP_SEQ IN ({seq})"
+                + " GROUP BY mx.OUT_LOT_NO, mx.IN_LOT_NO"
+                + " )"
+                + " UNION"
+                + " SELECT"
+                + " p.LOT_NO"
+                + " ,CAST(p.IN_VOUCHER_NO AS SIGNED) SHIP_SEQ"
+                + " ,14 loc"
+                + " FROM kyoei.mj_u_product p"
+                + " WHERE p.LOT_KBN = '0'"
+                + " AND p.LOT_NO IN ("
+                + " SELECT"
+                + " mx.IN_LOT_NO"
+                + " FROM kyoei.t_mix_material mx"
+                + " LEFT JOIN kyoei.t_product p   ON p.LOT_NO = mx.OUT_LOT_NO"
+                + " WHERE"
+                + " 1 = 1"
+                + " AND mx.OUT_LOT_NO IS NOT NULL"
+                + $" AND p.SHIP_SEQ IN ({seq})"
+                + " GROUP BY mx.OUT_LOT_NO, mx.IN_LOT_NO"
+                + " )"
+                + " ) jp"
+                + " LEFT JOIN kyoei.m_j_shipment shh   ON shh.SEQ = jp.SHIP_SEQ"
+                + " LEFT JOIN kyoei.m_j_voucher  voh   ON voh.SHIPPING_SEQ = shh.SEQ"
+                + " LEFT JOIN kyoei.mj_shipping  shu   ON shu.SEQ = jp.SHIP_SEQ"
+                + " LEFT JOIN kyoei.mj_voucher   vou   ON vou.SHIPPING_SEQ = shu.SEQ"
+                + " "
+                + " ) mat   ON mat.LOT_NO = mx.IN_LOT_NO"
+                + " WHERE 1 = 1 " //  AND mx.MACHINE_NAME = 'SMCS-3' なぜかマシンが限定されていた
+                + " AND mx.OUT_LOT_NO IS NOT NULL"
+                + " AND IFNULL(ti.MAKER,'') != ''"
+                + $" AND p.SHIP_SEQ IN ({seq})"
+                + " GROUP BY mx.OUT_LOT_NO, mx.IN_LOT_NO"
+                + " ORDER BY "
+                + " SUBSTRING_INDEX(mx.OUT_LOT_NO,'-', 2)"
+                + " ,CAST(SUBSTRING_INDEX(mx.OUT_LOT_NO,'-', -1) AS decimal(2))"
+                + " , p.SHIP_SEQ;";
+            return s;
         }
     }
 }

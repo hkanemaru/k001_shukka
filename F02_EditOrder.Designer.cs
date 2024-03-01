@@ -67,6 +67,7 @@
             this.checkBox2 = new System.Windows.Forms.CheckBox();
             this.label17 = new System.Windows.Forms.Label();
             this.cb3 = new System.Windows.Forms.CheckBox();
+            this.button13 = new System.Windows.Forms.Button();
             this.button12 = new System.Windows.Forms.Button();
             this.button11 = new System.Windows.Forms.Button();
             this.button10 = new System.Windows.Forms.Button();
@@ -512,6 +513,26 @@
             this.cb3.Text = "(F)付";
             this.cb3.UseVisualStyleBackColor = true;
             // 
+            // button13
+            // 
+            this.button13.BackColor = System.Drawing.Color.WhiteSmoke;
+            this.button13.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
+            this.button13.FlatAppearance.BorderColor = System.Drawing.Color.LightGray;
+            this.button13.FlatAppearance.MouseDownBackColor = System.Drawing.SystemColors.ControlDarkDark;
+            this.button13.FlatAppearance.MouseOverBackColor = System.Drawing.Color.SteelBlue;
+            this.button13.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.button13.Font = new System.Drawing.Font("Meiryo UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this.button13.ForeColor = System.Drawing.SystemColors.InactiveCaptionText;
+            this.button13.Image = global::k001_shukka.Properties.Resources.gChange;
+            this.button13.Location = new System.Drawing.Point(831, 33);
+            this.button13.Name = "button13";
+            this.button13.Size = new System.Drawing.Size(60, 57);
+            this.button13.TabIndex = 100;
+            this.button13.Text = "依頼";
+            this.button13.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
+            this.button13.UseVisualStyleBackColor = false;
+            this.button13.Click += new System.EventHandler(this.Ctrl_Click);
+            // 
             // button12
             // 
             this.button12.BackColor = System.Drawing.Color.WhiteSmoke;
@@ -542,7 +563,7 @@
             this.button11.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.button11.ForeColor = System.Drawing.SystemColors.InactiveCaptionText;
             this.button11.Image = global::k001_shukka.Properties.Resources.shipvote;
-            this.button11.Location = new System.Drawing.Point(826, 33);
+            this.button11.Location = new System.Drawing.Point(763, 33);
             this.button11.Name = "button11";
             this.button11.Size = new System.Drawing.Size(60, 57);
             this.button11.TabIndex = 97;
@@ -601,7 +622,7 @@
             this.button8.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.button8.ForeColor = System.Drawing.SystemColors.InactiveCaptionText;
             this.button8.Image = global::k001_shukka.Properties.Resources.SC_IN;
-            this.button8.Location = new System.Drawing.Point(518, 33);
+            this.button8.Location = new System.Drawing.Point(474, 32);
             this.button8.Name = "button8";
             this.button8.Size = new System.Drawing.Size(60, 57);
             this.button8.TabIndex = 94;
@@ -620,7 +641,7 @@
             this.button7.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.button7.ForeColor = System.Drawing.SystemColors.InactiveCaptionText;
             this.button7.Image = global::k001_shukka.Properties.Resources.container;
-            this.button7.Location = new System.Drawing.Point(749, 33);
+            this.button7.Location = new System.Drawing.Point(695, 33);
             this.button7.Name = "button7";
             this.button7.Size = new System.Drawing.Size(60, 57);
             this.button7.TabIndex = 92;
@@ -639,7 +660,7 @@
             this.button6.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.button6.ForeColor = System.Drawing.SystemColors.InactiveCaptionText;
             this.button6.Image = global::k001_shukka.Properties.Resources.del_red;
-            this.button6.Location = new System.Drawing.Point(441, 32);
+            this.button6.Location = new System.Drawing.Point(405, 32);
             this.button6.Name = "button6";
             this.button6.Size = new System.Drawing.Size(60, 57);
             this.button6.TabIndex = 89;
@@ -658,7 +679,7 @@
             this.button5.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.button5.ForeColor = System.Drawing.SystemColors.InactiveCaptionText;
             this.button5.Image = global::k001_shukka.Properties.Resources.ShipChk;
-            this.button5.Location = new System.Drawing.Point(595, 35);
+            this.button5.Location = new System.Drawing.Point(543, 32);
             this.button5.Name = "button5";
             this.button5.Size = new System.Drawing.Size(60, 57);
             this.button5.TabIndex = 87;
@@ -677,7 +698,7 @@
             this.button4.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.button4.ForeColor = System.Drawing.SystemColors.InactiveCaptionText;
             this.button4.Image = global::k001_shukka.Properties.Resources.print_vote;
-            this.button4.Location = new System.Drawing.Point(672, 33);
+            this.button4.Location = new System.Drawing.Point(612, 32);
             this.button4.Name = "button4";
             this.button4.Size = new System.Drawing.Size(60, 57);
             this.button4.TabIndex = 60;
@@ -771,6 +792,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoValidate = System.Windows.Forms.AutoValidate.EnablePreventFocusChange;
             this.ClientSize = new System.Drawing.Size(979, 691);
+            this.Controls.Add(this.button13);
             this.Controls.Add(this.cb3);
             this.Controls.Add(this.button12);
             this.Controls.Add(this.button11);
@@ -890,5 +912,6 @@
         private System.Windows.Forms.Button button11;
         private System.Windows.Forms.Button button12;
         private System.Windows.Forms.CheckBox cb3;
+        private System.Windows.Forms.Button button13;
     }
 }

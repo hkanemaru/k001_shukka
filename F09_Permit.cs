@@ -25,7 +25,7 @@ namespace k001_shukka
             string sTitle = "出荷情報一覧";
             #region 画面の状態を設定
             // 画面サイズ変更の禁止
-            this.MaximizeBox = false;
+            //this.MaximizeBox = false;
 
             lblCaption.Text = fn.frmTxt(sTitle);
             string s = string.Empty; ;
@@ -733,7 +733,19 @@ namespace k001_shukka
 
         private void button11_Click(object sender, EventArgs e)
         {
-            fn.CrtUsrIni("2", "011" + argVals[0]);
+            string sTmp = string.Empty;
+            foreach(DataGridViewRow r in dgv0.Rows)
+            {
+                string s = dgv0.Rows[r.Index].Cells["LoNo"].Value.ToString();
+                if (s.IndexOf("-M") >= 0 || s.IndexOf("-K") >= 0 || s.IndexOf("-D") >= 0)
+                {
+                    //sTmp += "@'" + s + "'";
+                    sTmp = "1";
+                    break;
+                }
+            }
+            //if (sTmp.Length > 0) sTmp = sTmp.Substring(1);
+            fn.CrtUsrIni("2", "011" , argVals[0],sTmp);
             var proc = new System.Diagnostics.Process();
             // C:\Users\h-kanemaru\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\kProductPlan
             try

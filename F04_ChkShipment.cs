@@ -71,10 +71,7 @@ namespace k001_shukka
         {
             if (bClose)
             {
-                DialogResult result = MessageBox.Show(
-                        "「戻る」ボタンで画面を閉じてください。", "",
-                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                //e.Cancel = true;
+
             }
             //CreateRetCsv(); 20210202 自動で出荷を行うと輸出計上が出来ないので止める
         }
@@ -359,31 +356,29 @@ namespace k001_shukka
                     bDirty = true;
                     GetData(dgv0, bs0, sGetList());
                     string[] sSend = { "登録しました。", "false" };
-                    string[] sRcv = promag_frm.F05_YN.ShowMiniForm(sSend);
+                    _ = promag_frm.F05_YN.ShowMiniForm(sSend);
                 }
             }
             else
             {
                 string[] sSendT = { "有効な入力がありませんでした。登録していません。", "false" };
-                string[] sRcvT = promag_frm.F05_YN.ShowMiniForm(sSendT);
+                _ = promag_frm.F05_YN.ShowMiniForm(sSendT);
                 return;
             }
         }
         private string sGetList()
         {
             string s;
-            s = string.Format(
-              "SELECT"
+            s =
+            "SELECT"
             + " p.LOT_NO LotNo"
             + " , CASE WHEN p.SHIP_CHK_DATE IS NULL THEN '' ELSE '確認済み' END 確認結果"
             + " FROM "
             + " ("
-            + "SELECT LOT_NO, SHIP_SEQ, SHIP_CHK_DATE FROM t_product"
+            + $"SELECT LOT_NO, SHIP_SEQ, SHIP_CHK_DATE FROM t_product WHERE SHIP_SEQ = {argVals[0]}"
             + " UNION "
-            + "SELECT LOT_NO, SHIP_SEQ, SHIP_CHK_DATE FROM t_t_product"
-            + ") p"
-            + " WHERE p.SHIP_SEQ = {0};"
-            , argVals[0]);
+            + $"SELECT LOT_NO, SHIP_SEQ, SHIP_CHK_DATE FROM t_t_product WHERE SHIP_SEQ = {argVals[0]}"
+            + ") p;";
             return s;
         }
 
