@@ -321,18 +321,18 @@ namespace k001_shukka
             {
                 slots = slots.Substring(1);
                 string sUPD = string.Empty;
-                sUPD = string.Format(
-                    "UPDATE t_product SET SHIP_CHK_DATE = NOW(), SHIP_CHK_PSN = '{2}' "
-                    + "WHERE SHIP_SEQ = {0} AND "
-                    + "LOT_NO IN ({1});"
-                    , argVals[0], slots, usr.id
-                    );
-                sUPD += string.Format(
-                    "UPDATE t_t_product SET SHIP_CHK_DATE = NOW(), SHIP_CHK_PSN = '{2}' "
-                    + "WHERE SHIP_SEQ = {0} AND "
-                    + "LOT_NO IN ({1});"
-                    , argVals[0], slots, usr.id
-                    );
+                sUPD = 
+                    $"UPDATE t_product SET SHIP_CHK_DATE = NOW(), SHIP_CHK_PSN = '{usr.id}' "
+                    + $"WHERE SHIP_SEQ = {argVals[0]} AND "
+                    + $"LOT_NO IN ({slots});";
+                sUPD += 
+                    $"UPDATE t_t_product SET SHIP_CHK_DATE = NOW(), SHIP_CHK_PSN = '{usr.id}' "
+                    + $"WHERE SHIP_SEQ = {argVals[0]} AND "
+                    + $"LOT_NO IN ({slots});";
+                sUPD +=
+                    $"UPDATE t_m_product SET CHK_SHIPPING = NOW(), UPD_ID = '{usr.id}' "
+                    + $"WHERE SHIP_SEQ = {argVals[0]} AND "
+                    + $"LOT_NO IN ({slots});";
                 mydb.kyDb con = new mydb.kyDb();
                 if (con.ExecSql(false,DEF_CON.Constr(), sUPD).Length == 0)
                 {
@@ -340,8 +340,10 @@ namespace k001_shukka
                         "SELECT COUNT(*) FROM "
                         + " ("
                         + "SELECT SHIP_SEQ, SHIP_CHK_DATE FROM t_product"
-                        + " UNION ALL "
+                        + " UNION "
                         + "SELECT SHIP_SEQ, SHIP_CHK_DATE FROM t_t_product"
+                        + " UNION "
+                        + "SELECT SHIP_SEQ, CHK_SHIPPING SHIP_CHK_DATE FROM t_m_product"
                         + ") p"
                         + " WHERE p.SHIP_SEQ = {0} AND p.SHIP_CHK_DATE IS NULL;"
                         , argVals[0]);
@@ -378,6 +380,9 @@ namespace k001_shukka
             + $"SELECT LOT_NO, SHIP_SEQ, SHIP_CHK_DATE FROM t_product WHERE SHIP_SEQ = {argVals[0]}"
             + " UNION "
             + $"SELECT LOT_NO, SHIP_SEQ, SHIP_CHK_DATE FROM t_t_product WHERE SHIP_SEQ = {argVals[0]}"
+            + " UNION "
+            + " SELECT LOT_NO, SHIP_SEQ, CHK_SHIPPING SHIP_CHK_DATE"
+            + $" FROM t_m_product WHERE SHIP_SEQ = {argVals[0]}"
             + ") p;";
             return s;
         }
@@ -466,40 +471,40 @@ namespace k001_shukka
             // データ欄以外は何もしない
             if (!bdgvCellClk) return;
             int ir = e.RowIndex;
+            
+            // ダブルクリック前に列の並び替えが行われていれば、その状態を記憶
+            // string sOrder = string.Empty;
+            // string sOrdColName = string.Empty;
+            // if (dgv.SortedColumn != null)
+            // {
+            //     if (dgv.SortOrder.ToString() == "Ascending") sOrder = "ASC";
+            //     else sOrder = "DESC";
+            //     sOrdColName = dgv.SortedColumn.Name;
+            // }
 
-            //// ダブルクリック前に列の並び替えが行われていれば、その状態を記憶
-            //string sOrder = string.Empty;
-            //string sOrdColName = string.Empty;
-            //if (dgv.SortedColumn != null)
-            //{
-            //    if (dgv.SortOrder.ToString() == "Ascending") sOrder = "ASC";
-            //    else sOrder = "DESC";
-            //    sOrdColName = dgv.SortedColumn.Name;
-            //}
+            // string s0 = dgv.Rows[e.RowIndex].Cells[0].Value.ToString(); // SEQ
+            // string[] sendText = { s0 };
 
-            //string s0 = dgv.Rows[e.RowIndex].Cells[0].Value.ToString(); // SEQ
-            //string[] sendText = { s0 };
+            // //// FRMxxxxから送られてきた値を受け取る
+            // string[] receiveText = JFRM46.ShowMiniForm(this, sendText);
 
-            ////// FRMxxxxから送られてきた値を受け取る
-            //string[] receiveText = JFRM46.ShowMiniForm(this, sendText);
-
-            //GetData(dgv0, bs0, sGetList());
-            //// 並び順をダブルクリック前に戻し値を検索
-            //if (sOrder.Length > 0)
-            //{
-            //    bs0.Sort = string.Format("{0} {1}", sOrdColName, sOrder);
-
-            //    for (int r = 0; r < dgv.Rows.Count; r++)
-            //    {
-            //        if (dgv.Rows[r].Cells[0].Value.ToString() == s0)
-            //        {
-            //            ir = r;
-            //            break;
-            //        }
-            //    }
-            //}
-            //dgv0.Rows[ir].Selected = true;
-            //if (ir + 1 < dgv.Rows.Count) dgv0.FirstDisplayedScrollingRowIndex = ir;
+            // GetData(dgv0, bs0, sGetList());
+            // // 並び順をダブルクリック前に戻し値を検索
+            // if (sOrder.Length > 0)
+            // {
+            //     bs0.Sort = string.Format("{0} {1}", sOrdColName, sOrder);
+             
+            //     for (int r = 0; r < dgv.Rows.Count; r++)
+            //     {
+            //         if (dgv.Rows[r].Cells[0].Value.ToString() == s0)
+            //         {
+            //             ir = r;
+            //             break;
+            //         }
+            //     }
+            // }
+            // dgv0.Rows[ir].Selected = true;
+            // if (ir + 1 < dgv.Rows.Count) dgv0.FirstDisplayedScrollingRowIndex = ir;
         }
         #endregion
     }

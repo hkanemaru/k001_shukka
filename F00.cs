@@ -128,9 +128,9 @@ namespace k001_shukka
         {
             if (bClose)
             {
-                DialogResult result = MessageBox.Show(
-                        "「戻る」ボタンで画面を閉じてください。", "",
-                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                //DialogResult result = MessageBox.Show(
+                //        "「戻る」ボタンで画面を閉じてください。", "",
+                        //MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 //e.Cancel = true;
             }
         }

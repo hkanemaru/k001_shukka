@@ -427,6 +427,7 @@ namespace k001_shukka
             this.button6.Text = "J&T環境Xls取込";
             this.button6.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.button6.UseVisualStyleBackColor = false;
+            this.button6.Visible = false;
             this.button6.Click += new System.EventHandler(this.btn_Click);
             // 
             // F15_Receipt

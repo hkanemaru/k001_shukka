@@ -572,7 +572,7 @@ namespace k001_shukka
             string lot = textBox1.Text;
             string lcn = textBox2.Text;
             string grade = textBox3.Text;
-            if(lcn.Length == 0 || lot.Length == 0 || grade.Length == 0)
+            if(lcn.Length == 0 || lot.Length == 0 || (grade.Length == 0 && radioButton6.Checked))
             {
                 string[] snd = { "協栄G以外の製品の場合は、LotNo、搬入元、グレードの記入が必須です。", "false" };
                 _ = promag_frm2.F05_YN.ShowMiniForm(snd);
@@ -584,8 +584,8 @@ namespace k001_shukka
                 if ($"{dgv0.Rows[i].Cells[0].Value}".Length == 0)
                 {
                     dgv0.Rows[i].Cells[0].Value = lot;
-                    dgv0.Rows[i].Cells[1].Value = grade;
-                    
+                    if (grade.Length > 0) dgv0.Rows[i].Cells[1].Value = grade;
+                    lblFillVal(label8, dgv0);
                     break;
                 }
             }
@@ -609,6 +609,7 @@ namespace k001_shukka
             {
                 dgv.Rows.RemoveAt(cl.RowIndex);
             }
+            lblFillVal(label8, dgv0);
         }
         
         private void delAllRows()
@@ -724,7 +725,7 @@ namespace k001_shukka
                 }
                 else
                 {
-                    string del = "DELETE FROM t_receipt WHERE SEQ NOT IN (SELECT min_SEQ from (SELECT MIN(SEQ) min_SEQ FROM t_receipt GROUP BY LOT_NO, SUPPLIER) tmp);";
+                    string del = "DELETE FROM t_receipt WHERE SEQ NOT IN (SELECT min_SEQ from (SELECT MAX(SEQ) min_SEQ FROM t_receipt GROUP BY LOT_NO, SUPPLIER) tmp);";
                     con.ExecSql(false, DEF_CON.Constr(), del);
                     string[] snd = { "登録しました。", "false" };
                     _ = promag_frm.F05_YN.ShowMiniForm(snd);
@@ -1188,9 +1189,11 @@ namespace k001_shukka
         private void rb_CheckedChanged(object sender, EventArgs e)
         {
             RadioButton rb = (RadioButton)sender;
+            if (!rb.Checked) return;
             bool b = false;
             if (rb.Name == "radioButton6") b = true;
             textBox2.Enabled = b; textBox3.Enabled = b;button5.Enabled = b;
+            if (rb.Name == "radioButton5") button5.Enabled = true;
         }
 
         private void tb_Enter(object sender, EventArgs e)

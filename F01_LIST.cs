@@ -83,12 +83,12 @@ namespace k001_shukka
             SetTooltip();
             lblRCaption.Left = this.Width - lblRCaption.Width - 20;
             lblRCaption.Top = lblCaption.Top;
-            string s = string.Empty;
+            string s;
 
             SDate = DateTime.Today.AddMonths(-1).ToShortDateString();
             EDate = DateTime.Today.AddMonths(2).ToShortDateString();
 
-            string sTerm = string.Empty;
+            string sTerm;
             double Interval = (DateTime.Parse(EDate) - DateTime.Parse(SDate)).TotalDays;
             if (Interval == 1) sTerm = SDate;
             else sTerm = string.Format(" 期間:{0} - {1}", SDate, EDate);
@@ -118,17 +118,19 @@ namespace k001_shukka
             //ToolTipを作成する
             //ToolTip1 = new ToolTip(this.components);
             //フォームにcomponentsがない場合
-            ToolTip1 = new ToolTip();
+            ToolTip1 = new ToolTip
+            {
 
-            //ToolTipの設定を行う
-            //ToolTipが表示されるまでの時間
-            ToolTip1.InitialDelay = 200;
-            //ToolTipが表示されている時に、別のToolTipを表示するまでの時間
-            ToolTip1.ReshowDelay = 500;
-            //ToolTipを表示する時間
-            ToolTip1.AutoPopDelay = 10000;
-            //フォームがアクティブでない時でもToolTipを表示する
-            ToolTip1.ShowAlways = true;
+                //ToolTipの設定を行う
+                //ToolTipが表示されるまでの時間
+                InitialDelay = 200,
+                //ToolTipが表示されている時に、別のToolTipを表示するまでの時間
+                ReshowDelay = 500,
+                //ToolTipを表示する時間
+                AutoPopDelay = 10000,
+                //フォームがアクティブでない時でもToolTipを表示する
+                ShowAlways = true
+            };
 
             //Button1とButton2にToolTipが表示されるようにする
             ToolTip1.SetToolTip(btnClose, "戾る");
@@ -152,9 +154,9 @@ namespace k001_shukka
         {
             if (bClose)
             {
-                DialogResult result = MessageBox.Show(
-                        "「戻る」ボタンで画面を閉じてください。", "",
-                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                //DialogResult result = MessageBox.Show(
+                //        "「戻る」ボタンで画面を閉じてください。", "",
+                //        MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 //e.Cancel = true;
                 if (this.ReturnValue == null) this.ReturnValue = new string[] { "" };
             }
@@ -189,9 +191,9 @@ namespace k001_shukka
             if (con.ds.Tables[0].Rows.Count == 0) return;
             string sIns = "INSERT INTO t_shipment_inf (";
             sIns += "SEQ,LOC_SEQ,JC_SEQ,JDNNO,LINNO,UPD_DATE,REG_DATE,LGC_DEL) VALUES ";
-            string sSql = string.Empty;
+            string sSql;
             string sVal = string.Empty;
-            string sErr = string.Empty;
+            string sErr;
             
             for (int i = 0; i < con.ds.Tables[0].Rows.Count; i++)
             {
@@ -215,7 +217,7 @@ namespace k001_shukka
                 catch
                 {
                     string[] sSet = { "登録出来ませんでした。", "false" };
-                    string[] sRcv = promag_frm.F05_YN.ShowMiniForm(sSet);
+                    _ = promag_frm.F05_YN.ShowMiniForm(sSet);
                     continue;
                 }
             }
@@ -223,17 +225,17 @@ namespace k001_shukka
             {
                 sVal = sVal.Substring(1) + ";";
                 sSql = sIns + sVal;
-                string s = con.ExecSql(false, DEF_CON.Constr(), sSql);
+                con.ExecSql(false, DEF_CON.Constr(), sSql);
             }
         }
 
         private string GetOrder()
         {
-            string sMN = string.Empty;
-            string sTerm = string.Empty;
+            // string sMN;
+            string sTerm;
             sTerm = string.Format("BETWEEN '{0}' AND '{1}'", SDate.Replace("/",""), EDate.Replace("/", ""));
             //sTerm = string.Format("BETWEEN '{0}' AND '{1}'", SDate.Substring(2), EDate.Substring(2));
-            string s = string.Empty;
+            string s;
             string s1 = @"[0-9]{8}";
             s = string.Format(
                    "SELECT"
@@ -273,6 +275,8 @@ namespace k001_shukka
                  + "     THEN '1品目選定待' "
                  + "   WHEN si.GA_SEQ IS NOT NULL AND (IFNULL(CAST(jc.UODSU AS SIGNED),si.SHIPMENT_QUANTITY) != IFNULL(tmp.wt,0) OR IFNULL(tmp.wt,0) = 0)" // GA_SEQ設定済 選定LOT重量合計<>ship_inf重量
                  + "     THEN '2Lot選定待' "
+                 + "   WHEN IFNULL(CAST(jc.UODSU AS SIGNED),si.SHIPMENT_QUANTITY) = IFNULL(tmp.wt,0) AND tmp.CHK_DATE IS NULL AND jc.SEQ != si.JC_SEQ" // 選定LOT重量合計=ship_inf重量 出荷確認無
+                 + "     THEN '0【要確】受注とデータ不一致' "
                  + "   WHEN IFNULL(CAST(jc.UODSU AS SIGNED),si.SHIPMENT_QUANTITY) = IFNULL(tmp.wt,0) AND tmp.CHK_DATE IS NULL" // 選定LOT重量合計=ship_inf重量 出荷確認無
                  + "     THEN '3出荷確認待' "
                  + "   WHEN si.JDNNO IS NOT NULL AND si.SC_OUT IS NULL"          //  受注番号有り SC_OUT無し"
@@ -389,9 +393,21 @@ namespace k001_shukka
                  + "   AND si.LGC_DEL = '0'"
                  + " )"
                  + ") pdc "
-                 + "  LEFT JOIN kyoei.t_lot_manegement lm   ON lm.LOT_NO = pdc.LOT_NO"
-                 + "     GROUP BY  pdc.SHIP_SEQ"
 
+                 + " LEFT JOIN "
+                 + " (SELECT"
+                 + " lm.LOT_NO"
+                 + " ,lm.REMAIN_WT"
+                 + " FROM t_lot_manegement lm"
+                 + " WHERE lm.SEQ IN ("
+                 + " SELECT MAX(SEQ) FROM t_lot_manegement lm GROUP BY lm.LOT_NO)"
+                 + " ) lm   ON lm.LOT_NO = pdc.LOT_NO"
+
+
+                 // + "  LEFT JOIN kyoei.t_lot_manegement lm   ON lm.LOT_NO = pdc.LOT_NO"
+
+
+                 + "     GROUP BY  pdc.SHIP_SEQ"
 
                  + "  ) tmp "
                  + "    ON tmp.SHIP_SEQ = si.SEQ "
@@ -1030,6 +1046,10 @@ namespace k001_shukka
             {
                 ExportGRS();
             }
+            if(btn.Name == "button15")
+            {
+                ExportXls();
+            }
         }
 
         private void arrageTextBW(DataGridView dgv)
@@ -1080,6 +1100,93 @@ namespace k001_shukka
                 #endregion
             }
             this.Visible = true;
+        }
+
+        private void ExportXls()
+        {
+            // 一覧の警告
+            if (dgv0.SelectedRows.Count == 0)
+            {
+                string[] snd = { "一覧から出力するデータを選択して下さい。", "false" };
+                _ = promag_frm.F05_YN.ShowMiniForm(snd);
+                return;
+            }
+            // 出荷No
+            string seq = string.Empty;
+            foreach (DataGridViewRow r in dgv0.SelectedRows)
+            {
+                string tmp = dgv0.Rows[r.Index].Cells["出荷No"].Value.ToString();
+                seq += $",{tmp}";
+            }
+            seq = seq.Substring(1);
+
+            string sql =
+                "SELECT "
+                 + " p.SHIP_SEQ 出荷番号"
+                 + " ,p.LOT_NO LotNo"
+                 + " FROM t_product p"
+                 + " WHERE p.SHIP_SEQ IS NOT NULL"
+                 + $" AND p.SHIP_SEQ IN ({seq})"
+                 + " ORDER BY p.SHIP_SEQ,p.LOT_NO ;";
+
+            mydb.kyDb con = new mydb.kyDb();
+            con.GetData(sql, DEF_CON.Constr());
+            if(con.ds.Tables[0].Rows.Count == 0)
+            {
+                string[] snd = { "選択した出荷No.に紐づいたLotが見つかりませんでした。", "false" };
+                _ = promag_frm.F05_YN.ShowMiniForm(snd);
+                return;
+            }
+
+            // DataGridViewのセルデータ格納変数 -> v[,]
+            //object[,] v = new object[dgv.Rows.Count + 1, dgv.Columns.Count];
+            object[,] v = new object[con.ds.Tables[0].Rows.Count + 1, con.ds.Tables[0].Columns.Count];
+            #region DataGridViewのセルデータ取得 -> v に値を格納
+            // ヘッダ
+            for (int c = 0; c < con.ds.Tables[0].Columns.Count; c++)
+            {
+                v[0, c] = con.ds.Tables[0].Columns[c].ColumnName;
+            }
+            // データ
+            for (int r = 0; r < con.ds.Tables[0].Rows.Count; r++)
+            {
+                for (int c = 0; c < con.ds.Tables[0].Columns.Count; c++)
+                {
+                    v[r + 1, c] = $"{con.ds.Tables[0].Rows[r][c]}";
+                }
+            }
+            #endregion
+            //string filePath = @"C:\app\temp.xlsx";
+            string fileNm = string.Format("{1}LotList{0}.xlsx", DateTime.Now.ToString("yyyyMMddHHmmss"), argVals[0]);
+            var fp = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), fileNm);
+
+            //using (var book = new XLWorkbook(XLEventTracking.Disabled))
+            //{
+            //    var sheet1 = book.AddWorksheet("シート1");
+
+            using (var wb = new ClosedXML.Excel.XLWorkbook(XLEventTracking.Disabled))
+            {
+
+                var ws = wb.AddWorksheet("DATA0");
+
+                for (int i = 0; i < v.GetLength(0); i++)
+                {
+                    for (int j = 0; j < v.GetLength(1); j++)
+                    {
+                        ws.Cell(i + 1, j + 1).Value = v[i, j];
+                    }
+                }
+                // 表全体をまとめて調整する場合は
+                //ws.ColumnsUsed().AdjustToContents();
+                wb.SaveAs(fp);
+                string smsg = string.Format(
+                    "マイドキュメントに、「{0}」を作成しました。ファイルを開きますか？", fileNm);
+                string[] sSet = { smsg, "" };
+                string[] sRcv = promag_frm.F05_YN.ShowMiniForm(sSet);
+                fileNm = System.Environment.GetFolderPath(Environment.SpecialFolder.Personal) + "\\" + fileNm;
+                if (sRcv[0].Length > 0) System.Diagnostics.Process.Start(fileNm);
+            }
         }
 
         private void ExportXls(DataGridView dgv)
@@ -1143,7 +1250,7 @@ namespace k001_shukka
 
         private string sChkJuchuExist()
         {
-            string s = string.Empty;
+            string s;
             s =
             "SELECT"
              + " jc.SEQ"  //0
@@ -1286,7 +1393,7 @@ namespace k001_shukka
             string[] sendText = { s0, s1 };
 
             //// FRMxxxxから送られてきた値を受け取る
-            string[] receiveText = F02_EditOrder.ShowMiniForm(this, sendText);
+            _ = F02_EditOrder.ShowMiniForm(this, sendText);
 
             GetData(dgv0, bs0, GetOrder());
             this.Visible = false;
@@ -1487,7 +1594,7 @@ namespace k001_shukka
                     // ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■　納品情報抽出
                     con.GetData(sGetJuchu(sDenNo), DEF_CON.Constr());
                     int iCount = con.ds.Tables[0].Rows.Count; // >5 毎に1枚伝票が増える
-                    int iDenCount = 0;
+                    int iDenCount;
                     if (iCount % 5 == 0) iDenCount = (iCount - 1) / 5;
                     else iDenCount = iCount / 5 + 1; // (icount-1) ÷ 5 = 0.x +1 >> int にすれば1
                     // 必ず5行揃える
@@ -1565,12 +1672,12 @@ namespace k001_shukka
                        (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 10, iTextSharp.text.Font.NORMAL);
                     Font fnt16 = new Font(BaseFont.CreateFont
                        (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 16, iTextSharp.text.Font.NORMAL);
-                    Font fnt11 = new Font(BaseFont.CreateFont
-                       (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 11, iTextSharp.text.Font.NORMAL);
+                    //Font fnt11 = new Font(BaseFont.CreateFont
+                    //   (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 11, iTextSharp.text.Font.NORMAL);
                     Font fnt12 = new Font(BaseFont.CreateFont
                        (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 12, iTextSharp.text.Font.NORMAL);
-                    Font fnt4 = new Font(BaseFont.CreateFont
-                           (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 6, iTextSharp.text.Font.BOLD);
+                    // Font fnt4 = new Font(BaseFont.CreateFont
+                    //        (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 6, iTextSharp.text.Font.BOLD);
                     #endregion
                     //文章の出力を開始します。
 
@@ -1587,10 +1694,12 @@ namespace k001_shukka
                                 float[] headerwidth = new float[] { 0.3f, 0.4f, 0.3f };
                                 PdfPCell cell;
                                 //3列からなるテーブルを作成
-                                PdfPTable tbl = new PdfPTable(headerwidth);
-                                //テーブル全体の幅（パーセンテージ）
-                                tbl.WidthPercentage = 100;
-                                tbl.HorizontalAlignment = Element.ALIGN_CENTER;
+                                PdfPTable tbl = new PdfPTable(headerwidth)
+                                {
+                                    //テーブル全体の幅（パーセンテージ）
+                                    WidthPercentage = 100,
+                                    HorizontalAlignment = Element.ALIGN_CENTER
+                                };
                                 tbl.DefaultCell.VerticalAlignment = Element.ALIGN_MIDDLE;
                                 //テーブルの余白
                                 tbl.DefaultCell.Padding = 2;
@@ -1608,14 +1717,16 @@ namespace k001_shukka
                                 //タイトルのセルを追加
                                 for (int j = 0; j < sHeader.GetLength(0); j++)
                                 {
-                                    cell = new PdfPCell(new Phrase(sHeader[j], fnt16));
-                                    //if (j == 1) cell = new PdfPCell(new Phrase(sHeader[j], fnt12));
-                                    //if (j == 2) cell = new PdfPCell(new Phrase(sHeader[j], fnt14));
-                                    cell.BorderColor = BaseColor.WHITE;
+                                    cell = new PdfPCell(new Phrase(sHeader[j], fnt16))
+                                    {
+                                        //if (j == 1) cell = new PdfPCell(new Phrase(sHeader[j], fnt12));
+                                        //if (j == 2) cell = new PdfPCell(new Phrase(sHeader[j], fnt14));
+                                        BorderColor = BaseColor.WHITE,
 
-                                    cell.FixedHeight = 20f; // <--高さ
-                                    cell.HorizontalAlignment = Element.ALIGN_CENTER;
-                                    cell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                                        FixedHeight = 20f, // <--高さ
+                                        HorizontalAlignment = Element.ALIGN_CENTER,
+                                        VerticalAlignment = Element.ALIGN_MIDDLE
+                                    };
                                     if (j == 2) cell.HorizontalAlignment = Element.ALIGN_RIGHT;
                                     //cell.BackgroundColor = BaseColor.LIGHT_GRAY; // セルの拝啓
                                     //cell.Colspan = 2; // セルのマージ
@@ -1627,10 +1738,12 @@ namespace k001_shukka
                                 #region 最初の表
                                 //4列からなるテーブルを作成
                                 headerwidth = new float[] { 0.14f, 0.26f, 0.25f, 0.25f };
-                                PdfPTable tbl1 = new PdfPTable(headerwidth);
-                                //テーブル全体の幅（パーセンテージ）
-                                tbl1.WidthPercentage = 60;
-                                tbl1.HorizontalAlignment = Element.ALIGN_RIGHT;
+                                PdfPTable tbl1 = new PdfPTable(headerwidth)
+                                {
+                                    //テーブル全体の幅（パーセンテージ）
+                                    WidthPercentage = 60,
+                                    HorizontalAlignment = Element.ALIGN_RIGHT
+                                };
                                 tbl1.DefaultCell.VerticalAlignment = Element.ALIGN_MIDDLE;
                                 //テーブルの余白>> 設定済み tbl.DefaultCell.Padding = 2;
                                 string sDue = v[0, 1].ToString();
@@ -1646,12 +1759,14 @@ namespace k001_shukka
                                 for (int j = 0; j < item.Length; j++)
                                 {
                                     //セルの追加
-                                    cell = new PdfPCell(new Phrase(item[j], fnt9));
-                                    // 全体の線の太さの設定
-                                    cell.BorderWidthTop = 0.8f;
-                                    cell.BorderWidthLeft = 0f;
-                                    cell.BorderWidthRight = 0.25f;
-                                    cell.BorderWidthBottom = 0.25f;
+                                    cell = new PdfPCell(new Phrase(item[j], fnt9))
+                                    {
+                                        // 全体の線の太さの設定
+                                        BorderWidthTop = 0.8f,
+                                        BorderWidthLeft = 0f,
+                                        BorderWidthRight = 0.25f,
+                                        BorderWidthBottom = 0.25f
+                                    };
                                     // 最初のセル
                                     if (j == 0) cell.BorderWidthLeft = 0.8f;
                                     // 最後のセル
@@ -1665,19 +1780,23 @@ namespace k001_shukka
                                 doc.Add(tbl1);
                                 #endregion
                                 #region テーブル2行目
-                                PdfPTable tbl2 = new PdfPTable(headerwidth);
-                                tbl2.WidthPercentage = 60;
-                                tbl2.HorizontalAlignment = Element.ALIGN_RIGHT;
+                                PdfPTable tbl2 = new PdfPTable(headerwidth)
+                                {
+                                    WidthPercentage = 60,
+                                    HorizontalAlignment = Element.ALIGN_RIGHT
+                                };
                                 tbl2.DefaultCell.VerticalAlignment = Element.ALIGN_MIDDLE;
                                 for (int j = 0; j < item.Length; j++)
                                 {
                                     //セルの追加
-                                    cell = new PdfPCell(new Phrase(item2[j], fnt9));
-                                    // 全体の線の太さの設定
-                                    cell.BorderWidthTop = 0f;
-                                    cell.BorderWidthLeft = 0f;
-                                    cell.BorderWidthRight = 0.25f;
-                                    cell.BorderWidthBottom = 0.8f;
+                                    cell = new PdfPCell(new Phrase(item2[j], fnt9))
+                                    {
+                                        // 全体の線の太さの設定
+                                        BorderWidthTop = 0f,
+                                        BorderWidthLeft = 0f,
+                                        BorderWidthRight = 0.25f,
+                                        BorderWidthBottom = 0.8f
+                                    };
                                     // 最初のセル
                                     if (j == 0) cell.BorderWidthLeft = 0.8f;
                                     // 最後のセル
@@ -1715,13 +1834,17 @@ namespace k001_shukka
                                 {
                                     if (irow == 2)
                                     {
-                                        cell = new PdfPCell(new Phrase(item[irow], fnt12));
-                                        cell.FixedHeight = 34f;
+                                        cell = new PdfPCell(new Phrase(item[irow], fnt12))
+                                        {
+                                            FixedHeight = 34f
+                                        };
                                     }
                                     else
                                     {
-                                        cell = new PdfPCell(new Phrase(item[irow], fnt10));
-                                        cell.FixedHeight = 14f; // <--これ
+                                        cell = new PdfPCell(new Phrase(item[irow], fnt10))
+                                        {
+                                            FixedHeight = 14f // <--これ
+                                        };
                                     }
 
                                     cell.BorderWidth = 0f;
@@ -1778,21 +1901,24 @@ namespace k001_shukka
                                     headerwidth = new float[] { 0.35f, 0.2f, 0.45f };
                                     item = new string[] { "品　名　　・　　規　格", "数　量 ・ 単　位", "受　　　領　　　印" };
                                 }
-                                PdfPTable tbl4 = new PdfPTable(headerwidth);
-
-                                tbl4.WidthPercentage = 100;
+                                PdfPTable tbl4 = new PdfPTable(headerwidth)
+                                {
+                                    WidthPercentage = 100
+                                };
                                 fHi = 15f;
 
                                 #region メイン-ヘッダ行書き込み
                                 for (int j = 0; j < item.Length; j++)
                                 {
                                     //セルの追加
-                                    cell = new PdfPCell(new Phrase(item[j], fnt9));
-                                    // 全体の線の太さの設定
-                                    cell.BorderWidthTop = 0.8f;
-                                    cell.BorderWidthLeft = 0f;
-                                    cell.BorderWidthRight = 0.25f;
-                                    cell.BorderWidthBottom = 0.8f;
+                                    cell = new PdfPCell(new Phrase(item[j], fnt9))
+                                    {
+                                        // 全体の線の太さの設定
+                                        BorderWidthTop = 0.8f,
+                                        BorderWidthLeft = 0f,
+                                        BorderWidthRight = 0.25f,
+                                        BorderWidthBottom = 0.8f
+                                    };
                                     // 最初のセル
                                     if (j == 0) cell.BorderWidthLeft = 0.8f;
                                     // 最後のセル
@@ -1812,8 +1938,10 @@ namespace k001_shukka
                                 {
                                     #region 1,2枚目
                                     headerwidth = new float[] { 0.35f, 0.2f, 0.15f, 0.15f, 0.15f };
-                                    PdfPTable tbl5 = new PdfPTable(headerwidth);
-                                    tbl5.WidthPercentage = 100;
+                                    PdfPTable tbl5 = new PdfPTable(headerwidth)
+                                    {
+                                        WidthPercentage = 100
+                                    };
                                     fHi = 18f;
                                     // ir = iDencount
                                     for (int irow = ir * 5; irow < 5 + ir * 5; irow++)
@@ -1836,8 +1964,10 @@ namespace k001_shukka
                                             //セルの追加
                                             if (j == 0)
                                             {
-                                                cell = new PdfPCell(new Phrase(item[j], fnt9));
-                                                cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                                                cell = new PdfPCell(new Phrase(item[j], fnt9))
+                                                {
+                                                    HorizontalAlignment = Element.ALIGN_CENTER
+                                                };
                                             }
                                             else
                                             {
@@ -1870,8 +2000,10 @@ namespace k001_shukka
                                 {
                                     #region 3枚目
                                     headerwidth = new float[] { 0.35f, 0.2f, 0.45f };
-                                    PdfPTable tbl5 = new PdfPTable(headerwidth);
-                                    tbl5.WidthPercentage = 100;
+                                    PdfPTable tbl5 = new PdfPTable(headerwidth)
+                                    {
+                                        WidthPercentage = 100
+                                    };
                                     fHi = 20f;
                                     // ir = iDencount
                                     for (int irow = ir * 5; irow < 5 + ir * 5; irow++)
@@ -1921,8 +2053,10 @@ namespace k001_shukka
                                 if (ip != 2)
                                 {
                                     headerwidth = new float[] { 0.35f, 0.05f, 0.02f, 0.18f, 0.02f, 0.18f, 0.02f, 0.18f };
-                                    PdfPTable tbl6 = new PdfPTable(headerwidth);
-                                    tbl6.WidthPercentage = 100;
+                                    PdfPTable tbl6 = new PdfPTable(headerwidth)
+                                    {
+                                        WidthPercentage = 100
+                                    };
                                     tbl6.DefaultCell.VerticalAlignment = Element.ALIGN_MIDDLE;
                                     fHi = 26f;
                                     decimal dTotal = 0;
@@ -1997,7 +2131,7 @@ namespace k001_shukka
                         System.Windows.Forms.MessageBox.Show(ex.Message, "エラー");
                     }
                     doc.Close();
-                    p = System.Diagnostics.Process.Start(newFile);
+                    _ = System.Diagnostics.Process.Start(newFile);
                 } // 選択行&& [001]の処理　この手前で続きがあればnewpage
 
 
@@ -2116,8 +2250,10 @@ namespace k001_shukka
             #region EXCELアプリケーション生成
             try
             {
-                objExcel = new Excel.Application();
-                objExcel.DisplayAlerts = false; // 確認メッセージを非表示に設定
+                objExcel = new Excel.Application
+                {
+                    DisplayAlerts = false // 確認メッセージを非表示に設定
+                };
             }
             catch
             {
@@ -2145,8 +2281,8 @@ namespace k001_shukka
                         System.Environment.GetFolderPath(Environment.SpecialFolder.Personal);
             if (sTarget[sTarget.Length - 1] != Path.DirectorySeparatorChar)
             {
-                sTarget = sTarget + Path.DirectorySeparatorChar;
-                sTarget = sTarget + xlfname;
+                sTarget += Path.DirectorySeparatorChar;
+                sTarget += xlfname;
             }
 
             if (!File.Exists(sTarget) ||
@@ -2252,9 +2388,9 @@ namespace k001_shukka
                 {
                     ir = i;
                     #region 変数の定義
-                    string sNouhinbi = string.Empty; // 納品日
-                    string sTokCD = string.Empty; // お得意様コード
-                    string sTanTo = string.Empty; // 担当
+                    string sNouhinbi; // 納品日
+                    string sTokCD; // お得意様コード
+                    string sTanTo; // 担当
                     string sDenNo = string.Empty; // 伝票番号
                     string sZIPCD = string.Empty;
                     string sNOHAD = string.Empty;
@@ -2271,7 +2407,7 @@ namespace k001_shukka
                     string tmpDb = con.GetData(GetJuchuInf(ShipSeq), DEF_CON.Constr());
                     sNouhinbi = con.ds.Tables[0].Rows[0][1].ToString();
                     sTokCD = con.ds.Tables[0].Rows[0][2].ToString();
-                    string sSOUCD = sNOUTL = con.ds.Tables[0].Rows[0][10].ToString(); // 20201216追記
+                    string sSOUCD = con.ds.Tables[0].Rows[0][10].ToString(); // 20201216追記  sNOUTL
                     sTanTo = con.ds.Tables[0].Rows[0][3].ToString();
                     sTanTo += "                    ";
                     sTanTo = sTanTo.Substring(0, 18);
@@ -2286,7 +2422,7 @@ namespace k001_shukka
                     #endregion
 
                     // 同一受注番号のものがあるか探す。
-                    tmpDb = con.GetData(GetSEQ(sDenNo.Substring(0,sDenNo.Length-6)), DEF_CON.Constr());
+                    // tmpDb = con.GetData(GetSEQ(sDenNo.Substring(0,sDenNo.Length-6)), DEF_CON.Constr());
                     string sShipSeqs = string.Empty;
                     for(int r = 0;r < con.ds.Tables[0].Rows.Count; r++)
                     {
@@ -2341,8 +2477,8 @@ namespace k001_shukka
                        (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 12, iTextSharp.text.Font.NORMAL);
                     iTextSharp.text.Font fnt10 = new iTextSharp.text.Font(BaseFont.CreateFont
                        (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 10, iTextSharp.text.Font.NORMAL);
-                    iTextSharp.text.Font fnt11 = new iTextSharp.text.Font(BaseFont.CreateFont
-                       (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 11, iTextSharp.text.Font.NORMAL);
+                    //iTextSharp.text.Font fnt11 = new iTextSharp.text.Font(BaseFont.CreateFont
+                    //   (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 11, iTextSharp.text.Font.NORMAL);
                     iTextSharp.text.Font fnt9 = new iTextSharp.text.Font(BaseFont.CreateFont
                        (@"c:\windows\fonts\msmincho.ttc,1", BaseFont.IDENTITY_H, true), 9, iTextSharp.text.Font.NORMAL);
                     #endregion
@@ -2353,10 +2489,12 @@ namespace k001_shukka
                         float[] headerwidth = new float[] { 0.3f, 0.4f, 0.3f };
                         PdfPCell cell;
                         //3列からなるテーブルを作成
-                        PdfPTable tbl = new PdfPTable(headerwidth);
-                        //テーブル全体の幅（パーセンテージ）
-                        tbl.WidthPercentage = 100;
-                        tbl.HorizontalAlignment = Element.ALIGN_CENTER;
+                        PdfPTable tbl = new PdfPTable(headerwidth)
+                        {
+                            //テーブル全体の幅（パーセンテージ）
+                            WidthPercentage = 100,
+                            HorizontalAlignment = Element.ALIGN_CENTER
+                        };
                         tbl.DefaultCell.VerticalAlignment = Element.ALIGN_MIDDLE;
                         //テーブルの余白
                         tbl.DefaultCell.Padding = 2;
@@ -2373,11 +2511,13 @@ namespace k001_shukka
                         //タイトルのセルを追加
                         for (int j = 0; j < sHeader.GetLength(0); j++)
                         {
-                            cell = new PdfPCell(new Phrase(sHeader[j], fnt16));
-                            cell.BorderColor = BaseColor.WHITE;
-                            cell.FixedHeight = 20f;                         // <--高さ
-                            cell.HorizontalAlignment = Element.ALIGN_CENTER;
-                            cell.VerticalAlignment = Element.ALIGN_MIDDLE;
+                            cell = new PdfPCell(new Phrase(sHeader[j], fnt16))
+                            {
+                                BorderColor = BaseColor.WHITE,
+                                FixedHeight = 20f,                         // <--高さ
+                                HorizontalAlignment = Element.ALIGN_CENTER,
+                                VerticalAlignment = Element.ALIGN_MIDDLE
+                            };
                             if (j == 2) cell.HorizontalAlignment = Element.ALIGN_RIGHT;
                             tbl.AddCell(cell);
                         }
@@ -2387,10 +2527,12 @@ namespace k001_shukka
                         #region 最初の表
                         //4列からなるテーブルを作成
                         headerwidth = new float[] { 0.14f, 0.26f, 0.25f, 0.25f };
-                        PdfPTable tbl1 = new PdfPTable(headerwidth);
-                        //テーブル全体の幅（パーセンテージ）
-                        tbl1.WidthPercentage = 70;
-                        tbl1.HorizontalAlignment = Element.ALIGN_RIGHT;
+                        PdfPTable tbl1 = new PdfPTable(headerwidth)
+                        {
+                            //テーブル全体の幅（パーセンテージ）
+                            WidthPercentage = 70,
+                            HorizontalAlignment = Element.ALIGN_RIGHT
+                        };
                         tbl1.DefaultCell.VerticalAlignment = Element.ALIGN_MIDDLE;
                         //テーブルの余白>> 設定済み tbl.DefaultCell.Padding = 2;
                         //string sDen = v[0, 5].ToString();
@@ -2403,12 +2545,14 @@ namespace k001_shukka
                         for (int j = 0; j < item.Length; j++)
                         {
                             //セルの追加
-                            cell = new PdfPCell(new Phrase(item[j], fnt9));
-                            // 全体の線の太さの設定
-                            cell.BorderWidthTop = 0.8f;
-                            cell.BorderWidthLeft = 0f;
-                            cell.BorderWidthRight = 0.25f;
-                            cell.BorderWidthBottom = 0.25f;
+                            cell = new PdfPCell(new Phrase(item[j], fnt9))
+                            {
+                                // 全体の線の太さの設定
+                                BorderWidthTop = 0.8f,
+                                BorderWidthLeft = 0f,
+                                BorderWidthRight = 0.25f,
+                                BorderWidthBottom = 0.25f
+                            };
                             // 最初のセル
                             if (j == 0) cell.BorderWidthLeft = 0.8f;
                             // 最後のセル
@@ -2422,19 +2566,23 @@ namespace k001_shukka
                         doc.Add(tbl1);
                         #endregion
                         #region テーブル2行目
-                        PdfPTable tbl2 = new PdfPTable(headerwidth);
-                        tbl2.WidthPercentage = 70;
-                        tbl2.HorizontalAlignment = Element.ALIGN_RIGHT;
+                        PdfPTable tbl2 = new PdfPTable(headerwidth)
+                        {
+                            WidthPercentage = 70,
+                            HorizontalAlignment = Element.ALIGN_RIGHT
+                        };
                         tbl2.DefaultCell.VerticalAlignment = Element.ALIGN_MIDDLE;
                         for (int j = 0; j < item.Length; j++)
                         {
                             //セルの追加
-                            cell = new PdfPCell(new Phrase(item2[j], fnt9));
-                            // 全体の線の太さの設定
-                            cell.BorderWidthTop = 0f;
-                            cell.BorderWidthLeft = 0f;
-                            cell.BorderWidthRight = 0.25f;
-                            cell.BorderWidthBottom = 0.8f;
+                            cell = new PdfPCell(new Phrase(item2[j], fnt9))
+                            {
+                                // 全体の線の太さの設定
+                                BorderWidthTop = 0f,
+                                BorderWidthLeft = 0f,
+                                BorderWidthRight = 0.25f,
+                                BorderWidthBottom = 0.8f
+                            };
                             // 最初のセル
                             if (j == 0) cell.BorderWidthLeft = 0.8f;
                             // 最後のセル
@@ -2465,13 +2613,17 @@ namespace k001_shukka
                         {
                             if (irow == 2)
                             {
-                                cell = new PdfPCell(new Phrase(item[irow], fnt12));
-                                cell.FixedHeight = 34f;
+                                cell = new PdfPCell(new Phrase(item[irow], fnt12))
+                                {
+                                    FixedHeight = 34f
+                                };
                             }
                             else
                             {
-                                cell = new PdfPCell(new Phrase(item[irow], fnt10));
-                                cell.FixedHeight = 14f; // <--これ
+                                cell = new PdfPCell(new Phrase(item[irow], fnt10))
+                                {
+                                    FixedHeight = 14f // <--これ
+                                };
                             }
 
                             cell.BorderWidth = 0f;
@@ -2499,21 +2651,24 @@ namespace k001_shukka
                         bool bCon = false;
                         if (v[0, 7].ToString().Length > 0) bCon = true;
                         if (bCon) item = new string[] { "品　名　　・　　規　格　　・　　個数", "数　量", "日 付", "管 理 番 号", "充 填 ロ ッ ト №" };
-                        PdfPTable tbl4 = new PdfPTable(headerwidth);
-
-                        tbl4.WidthPercentage = 100;
+                        PdfPTable tbl4 = new PdfPTable(headerwidth)
+                        {
+                            WidthPercentage = 100
+                        };
                         fHi = 15f;
 
                         #region メイン-ヘッダ行書き込み
                         for (int j = 0; j < item.Length; j++)
                         {
                             //セルの追加
-                            cell = new PdfPCell(new Phrase(item[j], fnt9));
-                            // 全体の線の太さの設定
-                            cell.BorderWidthTop = 0.8f;
-                            cell.BorderWidthLeft = 0f;
-                            cell.BorderWidthRight = 0.25f;
-                            cell.BorderWidthBottom = 0.8f;
+                            cell = new PdfPCell(new Phrase(item[j], fnt9))
+                            {
+                                // 全体の線の太さの設定
+                                BorderWidthTop = 0.8f,
+                                BorderWidthLeft = 0f,
+                                BorderWidthRight = 0.25f,
+                                BorderWidthBottom = 0.8f
+                            };
                             // 最初のセル
                             if (j == 0) cell.BorderWidthLeft = 0.8f;
                             // 最後のセル
@@ -2540,8 +2695,10 @@ namespace k001_shukka
                         7 コンテナ番号
                          */
                         //headerwidth = new float[] { 0.35f, 0.2f, 0.15f, 0.15f, 0.15f };
-                        PdfPTable tbl5 = new PdfPTable(headerwidth);
-                        tbl5.WidthPercentage = 100;
+                        PdfPTable tbl5 = new PdfPTable(headerwidth)
+                        {
+                            WidthPercentage = 100
+                        };
                         fHi = 20.5f;
                         // ir = iDencount
                         
@@ -2588,13 +2745,17 @@ namespace k001_shukka
                                 //セルの追加
                                 if (j == 1)
                                 {
-                                    cell = new PdfPCell(new Phrase(item[j], fnt9));
-                                    cell.HorizontalAlignment = Element.ALIGN_RIGHT;
+                                    cell = new PdfPCell(new Phrase(item[j], fnt9))
+                                    {
+                                        HorizontalAlignment = Element.ALIGN_RIGHT
+                                    };
                                 }
                                 else
                                 {
-                                    cell = new PdfPCell(new Phrase(item[j], fnt9));
-                                    cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                                    cell = new PdfPCell(new Phrase(item[j], fnt9))
+                                    {
+                                        HorizontalAlignment = Element.ALIGN_CENTER
+                                    };
                                 }
                                 cell.FixedHeight = fHi; // <--これ
                                                         // 全体の線の太さの設定
@@ -2624,7 +2785,7 @@ namespace k001_shukka
                         System.Windows.Forms.MessageBox.Show(ex.Message, "エラー");
                     }
                     doc.Close();
-                    p = System.Diagnostics.Process.Start(newFile);
+                    _ = System.Diagnostics.Process.Start(newFile);
                 }
             }
 
@@ -2672,7 +2833,7 @@ namespace k001_shukka
             }
 
             string s0 = dgv0.Rows[irow].Cells[0].Value.ToString(); // SEQ
-            string s1 = dgv0.Rows[irow].Cells["HINCD"].Value.ToString(); // HINCD
+            // string s1 = dgv0.Rows[irow].Cells["HINCD"].Value.ToString(); // HINCD
             
 
 
@@ -2844,7 +3005,8 @@ namespace k001_shukka
                 + " ,mx.IN_LOT_NO  原料LotNo"
                 + " ,mat.VNO       入荷先納品書"
                 + " ,CONCAT(ti.GRADE,' ',ti.MAKER) 入荷先"
-                + " ,IFNULL(mat.shhDAY,mat.shuDAY) 入荷日"
+                + " ,iFNULL(IFNULL(mat.shhDAY, mat.shuDAY),r.REG_DATE) 入荷日"
+                // + " ,IFNULL(mat.shhDAY,mat.shuDAY) 入荷日"
                 + " ,sh.DUE_DATE 納品日"
                 + " ,sh.JDNNO    納品書"
                 + " ,mat.SHIP_SEQ"
@@ -2853,6 +3015,7 @@ namespace k001_shukka
                 + " LEFT JOIN kyoei.t_input ti        ON ti.LOT_NO = mx.IN_LOT_NO"
                 + " LEFT JOIN kyoei.t_product p       ON p.LOT_NO = mx.OUT_LOT_NO"
                 + " LEFT JOIN kyoei.t_shipment_inf sh ON sh.SEQ = p.SHIP_SEQ"
+                + " LEFT JOIN kyoei.t_receipt r ON r.LOT_NO = mx.IN_LOT_NO"
                 + " LEFT JOIN "
                 + " ("
                 + " SELECT"

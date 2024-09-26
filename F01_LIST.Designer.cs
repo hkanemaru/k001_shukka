@@ -48,6 +48,7 @@
             this.checkBox1 = new System.Windows.Forms.CheckBox();
             this.textBox8 = new System.Windows.Forms.TextBox();
             this.textBox9 = new System.Windows.Forms.TextBox();
+            this.button15 = new System.Windows.Forms.Button();
             this.button14 = new System.Windows.Forms.Button();
             this.button13 = new System.Windows.Forms.Button();
             this.button12 = new System.Windows.Forms.Button();
@@ -84,7 +85,7 @@
             this.lblRCaption.Dock = System.Windows.Forms.DockStyle.Right;
             this.lblRCaption.Font = new System.Drawing.Font("BIZ UDゴシック", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.lblRCaption.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
-            this.lblRCaption.Location = new System.Drawing.Point(1184, 0);
+            this.lblRCaption.Location = new System.Drawing.Point(1284, 0);
             this.lblRCaption.Name = "lblRCaption";
             this.lblRCaption.Size = new System.Drawing.Size(0, 16);
             this.lblRCaption.TabIndex = 5;
@@ -219,7 +220,7 @@
             this.label2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.label2.AutoSize = true;
             this.label2.Font = new System.Drawing.Font("Meiryo UI", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.label2.Location = new System.Drawing.Point(853, 34);
+            this.label2.Location = new System.Drawing.Point(953, 34);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(0, 19);
             this.label2.TabIndex = 32;
@@ -230,7 +231,7 @@
             this.checkBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.checkBox1.AutoSize = true;
             this.checkBox1.Font = new System.Drawing.Font("Meiryo UI", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.checkBox1.Location = new System.Drawing.Point(1020, 47);
+            this.checkBox1.Location = new System.Drawing.Point(1120, 47);
             this.checkBox1.Name = "checkBox1";
             this.checkBox1.Size = new System.Drawing.Size(88, 23);
             this.checkBox1.TabIndex = 38;
@@ -257,6 +258,22 @@
             this.textBox9.Size = new System.Drawing.Size(50, 27);
             this.textBox9.TabIndex = 41;
             this.textBox9.TextChanged += new System.EventHandler(this.textBox_TextChanged);
+            // 
+            // button15
+            // 
+            this.button15.BackColor = System.Drawing.Color.WhiteSmoke;
+            this.button15.FlatAppearance.BorderColor = System.Drawing.Color.LightGray;
+            this.button15.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.button15.Font = new System.Drawing.Font("Meiryo UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this.button15.Image = global::k001_shukka.Properties.Resources.excel1;
+            this.button15.Location = new System.Drawing.Point(874, 28);
+            this.button15.Name = "button15";
+            this.button15.Size = new System.Drawing.Size(62, 58);
+            this.button15.TabIndex = 43;
+            this.button15.Text = "Lotリスト";
+            this.button15.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
+            this.button15.UseVisualStyleBackColor = false;
+            this.button15.Click += new System.EventHandler(this.btn_Click);
             // 
             // button14
             // 
@@ -378,7 +395,7 @@
             this.button6.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button6.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.button6.Image = ((System.Drawing.Image)(resources.GetObject("button6.Image")));
-            this.button6.Location = new System.Drawing.Point(888, 28);
+            this.button6.Location = new System.Drawing.Point(947, 28);
             this.button6.Name = "button6";
             this.button6.Size = new System.Drawing.Size(58, 58);
             this.button6.TabIndex = 27;
@@ -421,7 +438,7 @@
             this.button3.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button3.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.button3.Image = ((System.Drawing.Image)(resources.GetObject("button3.Image")));
-            this.button3.Location = new System.Drawing.Point(1114, 28);
+            this.button3.Location = new System.Drawing.Point(1214, 28);
             this.button3.Name = "button3";
             this.button3.Size = new System.Drawing.Size(58, 58);
             this.button3.TabIndex = 20;
@@ -435,7 +452,7 @@
             this.button2.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button2.Font = new System.Drawing.Font("Meiryo UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.button2.Image = ((System.Drawing.Image)(resources.GetObject("button2.Image")));
-            this.button2.Location = new System.Drawing.Point(952, 28);
+            this.button2.Location = new System.Drawing.Point(1011, 28);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(58, 58);
             this.button2.TabIndex = 8;
@@ -474,7 +491,8 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1184, 691);
+            this.ClientSize = new System.Drawing.Size(1284, 691);
+            this.Controls.Add(this.button15);
             this.Controls.Add(this.button14);
             this.Controls.Add(this.textBox9);
             this.Controls.Add(this.textBox8);
@@ -553,5 +571,6 @@
         private System.Windows.Forms.TextBox textBox8;
         private System.Windows.Forms.TextBox textBox9;
         private System.Windows.Forms.Button button14;
+        private System.Windows.Forms.Button button15;
     }
 }

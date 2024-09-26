@@ -167,6 +167,7 @@ namespace k001_shukka
                 lblSEQ.Text = con.ds.Tables[0].Rows[0][0].ToString();
                 if (con.ds.Tables[0].Rows[0][3].ToString() == "1") checkBox1.Checked = true;
                 if (con.ds.Tables[0].Rows[0][6].ToString() == "1") checkBox2.Checked = true;
+                if (con.ds.Tables[0].Rows[0][6].ToString() == "2") checkBox3.Checked = true;
                 lblUPD_PSN.Text = con.ds.Tables[0].Rows[0][4].ToString();
                 lblUPD_PSN.Text = fn.sStaffNAME(lblUPD_PSN.Text);
                 lblUPD_DATE.Text = con.ds.Tables[0].Rows[0][5].ToString();
@@ -244,12 +245,14 @@ namespace k001_shukka
             string sATbl = "NULL";
             if (checkBox1.Checked) sALot = "1";
             if (checkBox2.Checked) sATbl = "1";
+            if (checkBox3.Checked) sATbl = "2";
+            if (!checkBox2.Checked && !checkBox3.Checked) sATbl = "NULL";
             if (lblSEQ.Text.Length > 0)
             {
                 sValue = string.Format(
                     "UPDATE m_shipment_name SET GA_SEQ = {0}, SHIP_NAME = {1}, DESTINATION = {2}, DEST_FLG = {3}"
                     + ", UPD_ID = '{5}', ATBL = {6}, UPD_DATE = NOW() WHERE SEQ = {4};"
-                    , argVals[0], sHIN, sDest, sALot, lblSEQ.Text, usr.id, sATbl);
+                    , argVals[0].Replace(";", ""), sHIN, sDest, sALot, lblSEQ.Text, usr.id, sATbl);
             }
             else
             {
@@ -257,8 +260,8 @@ namespace k001_shukka
                     "INSERT INTO m_shipment_name ("
                     + "GA_SEQ, SHIP_NAME, TOKCD, NHSCD, DESTINATION, DEST_FLG, UPD_ID, UPD_DATE, REG_DATE, LGC_DEL, ATBL"
                     + ") VALUES ("
-                    +"{0}, {1}, '{2}', '{3}', {4}, {5}, '{6}', NOW(), NOW(), '0', {7});"
-                    , argVals[0], sHIN,argVals[1], argVals[2], sDest, sALot, usr.id, sATbl);
+                    +"{0}, {1}, '{2}', '{3}', {4}, {5}, '{6}', NOW(), NOW(), '0',   {7});"
+                    , argVals[0].Replace(";",""), sHIN,argVals[1], argVals[2], sDest, sALot, usr.id, sATbl);
             }
             sValue = sValue.Replace("\\", "\\\\");
 
@@ -284,6 +287,16 @@ namespace k001_shukka
         private void tB_Enter(object sender, EventArgs e)
         {
             
+        }
+
+        private void checkBox_CheckedChanged(object sender, EventArgs e)
+        {
+            CheckBox cb = (CheckBox)sender;
+            CheckBox cb2 = checkBox2;
+            CheckBox cb3 = checkBox3;
+            if (!cb.Checked) return;
+            if (cb == cb2) cb3.Checked = false;
+            else cb2.Checked = false;
         }
     }
 }

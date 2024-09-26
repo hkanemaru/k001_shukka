@@ -156,6 +156,45 @@ namespace k001_shukka
             return s;
         }
 
+        public static void imageFileCopy(string fls)
+        {
+            string fld = @"C:\tetra\img";
+            // フォルダ
+            if (!System.IO.Directory.Exists(fld))
+            {
+                System.IO.Directory.CreateDirectory(fld);
+            }
+            // ファイル
+            string baseFld = @"\\10.100.10.20\tetra\img";
+
+            string[] files = fls.Split(',');
+            for (int i = 0; i < files.Length; i++)
+            {
+                string flnm = files[i];
+                if (flnm.IndexOf(".") < 0) flnm += ".png";
+                string currFl = fld + @"\" + flnm;
+                string baseFl = baseFld + @"\" + flnm;
+                try
+                {
+                    // || System.IO.File.GetLastWriteTime(currFl) < System.IO.File.GetLastWriteTime(baseFl)
+                    if (!System.IO.File.Exists(currFl))
+                        System.IO.File.Copy(baseFl, currFl);
+                }
+                catch (Exception ex)
+                {
+                    string[] snd = { ex.Message, "false" };
+                    _ = promag_frm2.F05_YN.ShowMiniForm(snd);
+                    if (usr.id == "k0340")
+                    {
+                        string base0 = @"D:\document\PNG\png\resize2\";
+                        System.IO.File.Copy(base0 + flnm, baseFl);
+                        System.IO.File.Copy(base0 + flnm, currFl);
+                    }
+                }
+            }
+        }
+
+
         /// <summary>
         ///  ユーザーIDを与えると名前を返す関数
         /// </summary>

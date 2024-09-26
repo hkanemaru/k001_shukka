@@ -51,6 +51,7 @@
             this.btnClose = new System.Windows.Forms.Button();
             this.button1 = new System.Windows.Forms.Button();
             this.checkBox2 = new System.Windows.Forms.CheckBox();
+            this.checkBox3 = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // lblDT
@@ -104,7 +105,7 @@
             // 
             this.lblUPD_DATE.AutoSize = true;
             this.lblUPD_DATE.Font = new System.Drawing.Font("Meiryo UI", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.lblUPD_DATE.Location = new System.Drawing.Point(261, 383);
+            this.lblUPD_DATE.Location = new System.Drawing.Point(261, 392);
             this.lblUPD_DATE.Name = "lblUPD_DATE";
             this.lblUPD_DATE.Size = new System.Drawing.Size(0, 18);
             this.lblUPD_DATE.TabIndex = 119;
@@ -114,7 +115,7 @@
             // 
             this.lblUPD_PSN.AutoSize = true;
             this.lblUPD_PSN.Font = new System.Drawing.Font("Meiryo UI", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.lblUPD_PSN.Location = new System.Drawing.Point(261, 365);
+            this.lblUPD_PSN.Location = new System.Drawing.Point(261, 374);
             this.lblUPD_PSN.Name = "lblUPD_PSN";
             this.lblUPD_PSN.Size = new System.Drawing.Size(0, 18);
             this.lblUPD_PSN.TabIndex = 118;
@@ -124,7 +125,7 @@
             // 
             this.label16.AutoSize = true;
             this.label16.Font = new System.Drawing.Font("Meiryo UI", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.label16.Location = new System.Drawing.Point(190, 383);
+            this.label16.Location = new System.Drawing.Point(190, 392);
             this.label16.Name = "label16";
             this.label16.Size = new System.Drawing.Size(64, 18);
             this.label16.TabIndex = 115;
@@ -135,7 +136,7 @@
             // 
             this.label12.AutoSize = true;
             this.label12.Font = new System.Drawing.Font("Meiryo UI", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.label12.Location = new System.Drawing.Point(204, 365);
+            this.label12.Location = new System.Drawing.Point(204, 374);
             this.label12.Name = "label12";
             this.label12.Size = new System.Drawing.Size(50, 18);
             this.label12.TabIndex = 114;
@@ -307,16 +308,29 @@
             this.checkBox2.AutoSize = true;
             this.checkBox2.Location = new System.Drawing.Point(304, 315);
             this.checkBox2.Name = "checkBox2";
-            this.checkBox2.Size = new System.Drawing.Size(88, 23);
+            this.checkBox2.Size = new System.Drawing.Size(206, 23);
             this.checkBox2.TabIndex = 146;
-            this.checkBox2.Text = "別出荷票";
+            this.checkBox2.Text = "別出荷票(コンテナ重量表示)";
             this.checkBox2.UseVisualStyleBackColor = true;
+            this.checkBox2.CheckedChanged += new System.EventHandler(this.checkBox_CheckedChanged);
+            // 
+            // checkBox3
+            // 
+            this.checkBox3.AutoSize = true;
+            this.checkBox3.Location = new System.Drawing.Point(304, 344);
+            this.checkBox3.Name = "checkBox3";
+            this.checkBox3.Size = new System.Drawing.Size(185, 23);
+            this.checkBox3.TabIndex = 147;
+            this.checkBox3.Text = "別出荷票(Lot重量表示)";
+            this.checkBox3.UseVisualStyleBackColor = true;
+            this.checkBox3.CheckedChanged += new System.EventHandler(this.checkBox_CheckedChanged);
             // 
             // F12_SHIP_SETTING
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 19F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(594, 434);
+            this.Controls.Add(this.checkBox3);
             this.Controls.Add(this.checkBox2);
             this.Controls.Add(this.label8);
             this.Controls.Add(this.label7);
@@ -375,5 +389,6 @@
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.CheckBox checkBox2;
+        private System.Windows.Forms.CheckBox checkBox3;
     }
 }
